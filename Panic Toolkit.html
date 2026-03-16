@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Panic Toolkit — Prishaa</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2;
+    --warm-white: #FDFBF8;
+    --sage: #8AAF8E;
+    --sage-light: #C8DEC9;
+    --sage-deep: #5A8B5E;
+    --gold: #C8A96E;
+    --gold-light: #EDD9A3;
+    --blush: #E8C4B0;
+    --text: #2C2A27;
+    --text-muted: #7A7570;
+    --border: #E8E2D8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  .header {
+    padding: 40px 0 32px;
+    text-align: center;
+  }
+  .header-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .header h1 em { font-style: italic; color: var(--sage-deep); }
+  .header-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  .divider {
+    width: 48px; height: 2px;
+    background: var(--gold);
+    border-radius: 2px;
+    margin: 20px auto;
+  }
+
+  .screen { display: none; animation: fadeIn 0.4s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: var(--warm-white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  .card-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 300;
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  /* Feeling grid */
+  .feeling-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .feeling-btn {
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .feeling-btn:hover { border-color: var(--sage); background: #F0F7F1; }
+  .feeling-btn.selected { border-color: var(--sage-deep); background: #EAF3EA; color: var(--sage-deep); }
+  .feeling-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+
+  /* Breathing */
+  .breath-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+  }
+  .breath-ring { position: relative; width: 180px; height: 180px; }
+  .breath-circle {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--sage-light) 0%, #D8EDD9 60%, transparent 100%);
+    transform: scale(0.6);
+    transition: transform 0s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .breath-circle.inhale { animation: expand 4s ease-in forwards; }
+  .breath-circle.hold { animation: hold-anim 7s linear forwards; transform: scale(1); }
+  .breath-circle.exhale { animation: contract 8s ease-out forwards; transform: scale(1); }
+  @keyframes expand { from { transform: scale(0.6); } to { transform: scale(1); } }
+  @keyframes hold-anim { from { transform: scale(1); } to { transform: scale(1); } }
+  @keyframes contract { from { transform: scale(1); } to { transform: scale(0.6); } }
+  .breath-text {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .breath-phase { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--sage-deep); }
+  .breath-count { font-size: 28px; font-weight: 300; color: var(--sage-deep); margin-top: 4px; }
+  .breath-label { font-size: 12px; color: var(--text-muted); margin-top: 20px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .cycles-done { margin-top: 14px; font-size: 13px; color: var(--text-muted); }
+  .breath-start-btn {
+    background: var(--sage-light); color: var(--sage-deep);
+    border: none; padding: 10px 24px; border-radius: 50px;
+    font-family: 'DM Sans', sans-serif; font-weight: 500;
+    cursor: pointer; font-size: 13px; margin-top: 16px; transition: all 0.2s;
+  }
+  .breath-start-btn:hover { background: var(--sage); color: white; }
+
+  /* Grounding */
+  .grounding-step {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 16px; border-radius: 14px; margin-bottom: 10px;
+    border: 1.5px solid var(--border); cursor: pointer;
+    transition: all 0.2s; background: var(--cream);
+  }
+  .grounding-step.checked { border-color: var(--sage); background: #F0F7F1; }
+  .grounding-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--sage-light); color: var(--sage-deep);
+    font-weight: 500; font-size: 14px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .grounding-step.checked .grounding-num { background: var(--sage); color: white; }
+  .grounding-sense { font-size: 13px; font-weight: 500; }
+  .grounding-prompt { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+  /* Strategies */
+  .strategy-list { display: flex; flex-direction: column; gap: 10px; }
+  .strategy-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; background: var(--cream);
+    border: 1.5px solid var(--border); border-radius: 14px;
+    cursor: pointer; transition: all 0.2s; font-size: 14px;
+  }
+  .strategy-item:hover { border-color: var(--gold); background: #FBF7EE; }
+  .strategy-item.active { border-color: var(--gold); background: #FBF7EE; }
+  .strategy-icon { font-size: 22px; }
+  .strategy-text { flex: 1; }
+  .strategy-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .check-mark {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: white; transition: all 0.2s; flex-shrink: 0;
+  }
+  .strategy-item.active .check-mark { background: var(--gold); border-color: var(--gold); }
+
+  /* People */
+  .people-grid { display: flex; flex-direction: column; gap: 10px; }
+  .person-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; background: var(--cream);
+    border: 1.5px solid var(--border); border-radius: 14px;
+  }
+  .person-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--blush);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .person-name { font-size: 14px; font-weight: 500; }
+  .person-role { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .person-note {
+    margin-left: auto; font-size: 11px; color: var(--sage-deep);
+    background: #EAF3EA; padding: 4px 10px; border-radius: 20px; white-space: nowrap;
+  }
+
+  /* Crisis box */
+  .crisis-box {
+    background: linear-gradient(135deg, #FFF8F0, #FDF3E8);
+    border: 1.5px solid var(--blush); border-radius: 16px;
+    padding: 20px; margin-bottom: 12px;
+  }
+  .crisis-box h4 {
+    font-family: 'DM Serif Display', serif; font-size: 16px;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .crisis-line {
+    font-size: 13px; padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .crisis-line:last-child { border-bottom: none; }
+  .crisis-num { font-weight: 500; color: var(--sage-deep); font-size: 14px; }
+
+  /* Safe places */
+  .places-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .place-chip {
+    background: var(--sage-light); color: var(--sage-deep);
+    padding: 8px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 28px; border-radius: 50px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.25s ease; border: none;
+  }
+  .btn-primary { background: var(--sage-deep); color: white; width: 100%; margin-top: 20px; }
+  .btn-primary:hover { background: #4A7A4E; transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent; color: var(--text-muted);
+    border: 1.5px solid var(--border); font-size: 13px; padding: 10px 20px;
+  }
+  .btn-secondary:hover { border-color: var(--text-muted); }
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+  .btn-row .btn-primary { margin-top: 0; flex: 1; }
+
+  .progress-bar { height: 3px; background: var(--border); border-radius: 3px; margin-bottom: 28px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--sage); border-radius: 3px; transition: width 0.5s ease; }
+
+  /* Home */
+  .home-columns {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
+  }
+  .home-col { display: flex; flex-direction: column; gap: 12px; }
+  .home-card {
+    background: var(--warm-white); border: 1.5px solid var(--border);
+    border-radius: 18px; padding: 20px; cursor: pointer; transition: all 0.25s; text-align: left;
+  }
+  .home-card:hover { transform: translateY(-2px); border-color: var(--sage-light); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+  .home-card-icon { font-size: 28px; margin-bottom: 10px; display: block; }
+  .home-card-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .home-card-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .home-crisis {
+    background: #FFF8F0; border: 1.5px solid var(--blush);
+    border-radius: 18px; padding: 20px; cursor: pointer; transition: all 0.25s;
+    display: flex; align-items: center; gap: 16px; margin-bottom: 0;
+  }
+  .home-crisis:hover { transform: translateY(-2px); }
+  .home-crisis-icon { font-size: 28px; flex-shrink: 0; }
+  .home-crisis-title { font-size: 14px; font-weight: 500; }
+  .home-crisis-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+  /* Finish */
+  .finish-screen { text-align: center; padding: 20px 0; }
+  .finish-icon { font-size: 56px; margin-bottom: 16px; }
+  .finish-title { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 10px; }
+  .finish-sub { font-size: 14px; color: var(--text-muted); line-height: 1.7; max-width: 340px; margin: 0 auto 24px; }
+  .affirmation-box {
+    background: linear-gradient(135deg, #F0F7F1, #EAF3EA);
+    border-radius: 16px; padding: 20px 24px;
+    font-family: 'DM Serif Display', serif; font-style: italic;
+    font-size: 16px; color: var(--sage-deep); line-height: 1.7; margin-bottom: 24px;
+  }
+
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--text-muted); cursor: pointer;
+    margin-bottom: 20px; background: none; border: none;
+    font-family: 'DM Sans', sans-serif; padding: 0;
+  }
+  .back-btn:hover { color: var(--text); }
+
+  /* Reminder */
+  .reminder {
+    background: linear-gradient(135deg, var(--sage-light), #D8EDD9);
+    border-radius: 16px; padding: 18px 20px; margin-bottom: 16px;
+    color: var(--sage-deep);
+    font-family: 'DM Serif Display', serif; font-size: 15px;
+    font-style: italic; line-height: 1.6;
+    text-align: center;
+  }
+
+  /* ---- MOOD TRACKER ---- */
+  .mood-date-label {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+  .mood-emojis {
+    display: flex; justify-content: space-between;
+    gap: 8px; margin-bottom: 20px;
+  }
+  .mood-emoji-btn {
+    flex: 1; text-align: center; padding: 14px 4px;
+    border-radius: 16px; border: 1.5px solid var(--border);
+    cursor: pointer; transition: all 0.2s; background: var(--cream);
+  }
+  .mood-emoji-btn:hover { border-color: var(--sage); background: #F0F7F1; }
+  .mood-emoji-btn.selected { border-color: var(--sage-deep); background: #EAF3EA; }
+  .mood-emoji-btn .emoji { font-size: 26px; display: block; margin-bottom: 4px; }
+  .mood-emoji-btn .label { font-size: 10px; color: var(--text-muted); }
+  .mood-note-label { font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text); }
+  .mood-textarea {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 14px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--text); background: var(--cream); resize: none;
+    min-height: 90px; transition: border-color 0.2s; outline: none;
+    line-height: 1.6;
+  }
+  .mood-textarea:focus { border-color: var(--sage); }
+  .mood-textarea::placeholder { color: var(--text-muted); }
+  .mood-log { margin-top: 24px; }
+  .mood-log-title { font-size: 13px; font-weight: 500; margin-bottom: 12px; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px; }
+  .mood-entry {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 14px; background: var(--cream); border-radius: 12px;
+    margin-bottom: 8px; border: 1px solid var(--border);
+  }
+  .mood-entry-emoji { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .mood-entry-date { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .mood-entry-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .mood-empty { font-size: 13px; color: var(--text-muted); font-style: italic; padding: 10px 0; }
+  .mood-save-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; margin-top: 16px; padding: 13px;
+    background: var(--sage-deep); color: white; border: none;
+    border-radius: 50px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+  }
+  .mood-save-btn:hover { background: #4A7A4E; }
+  .mood-save-btn:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
+
+  /* ---- POETRY SPACE ---- */
+  .poetry-toolbar {
+    display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .poetry-prompt-btn {
+    font-size: 11px; padding: 6px 14px;
+    border: 1.5px solid var(--border); border-radius: 20px;
+    background: var(--cream); cursor: pointer; transition: all 0.2s;
+    color: var(--text-muted); font-family: 'DM Sans', sans-serif;
+  }
+  .poetry-prompt-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .poetry-title-input {
+    width: 100%; border: none; border-bottom: 1.5px solid var(--border);
+    background: transparent; font-family: 'DM Serif Display', serif;
+    font-size: 20px; color: var(--text); padding: 8px 0 10px;
+    margin-bottom: 16px; outline: none; transition: border-color 0.2s;
+  }
+  .poetry-title-input:focus { border-bottom-color: var(--sage); }
+  .poetry-title-input::placeholder { color: var(--border); }
+  .poetry-textarea {
+    width: 100%; border: none; background: transparent;
+    font-family: 'DM Serif Display', serif; font-size: 15px;
+    color: var(--text); resize: none; min-height: 220px;
+    outline: none; line-height: 2; letter-spacing: 0.01em;
+  }
+  .poetry-textarea::placeholder { color: var(--border); }
+  .poetry-editor {
+    width: 100%; border: none; background: transparent;
+    font-family: 'Lora', serif; font-size: 15px;
+    color: #6B6460; min-height: 220px;
+    outline: none; line-height: 2; letter-spacing: 0.01em;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .poetry-editor:empty::before {
+    content: attr(data-placeholder);
+    color: var(--border); pointer-events: none; display: block;
+  }
+  .poetry-editor b, .poetry-editor strong { font-weight: 600; color: #4A4240; }
+  .poetry-format-bar {
+    display: flex; gap: 4px; margin-bottom: 12px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  .fmt-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1.5px solid var(--border); background: var(--cream);
+    font-family: serif; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text); transition: all 0.15s; flex-shrink: 0;
+  }
+  .fmt-btn:hover { border-color: var(--sage); background: #F0F7F1; }
+  .fmt-btn.active { background: var(--sage-deep); border-color: var(--sage-deep); color: white; }
+  .fmt-btn-bold { font-weight: bold; }
+  .fmt-btn-italic { font-style: italic; }
+  .fmt-btn-underline { text-decoration: underline; }
+  .poetry-actions {
+    display: flex; gap: 10px; margin-top: 16px; align-items: center;
+    border-top: 1px solid var(--border); padding-top: 16px;
+  }
+  .poetry-save-btn {
+    flex: 1; padding: 12px; background: var(--sage-deep); color: white;
+    border: none; border-radius: 50px; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+  }
+  .poetry-save-btn:hover { background: #4A7A4E; }
+  .poetry-clear-btn {
+    padding: 12px 16px; background: transparent;
+    border: 1.5px solid var(--border); border-radius: 50px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+  }
+  .poetry-clear-btn:hover { border-color: var(--text-muted); }
+  .poetry-saved-list { margin-top: 24px; }
+  .poetry-saved-title { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
+  .poetry-saved-item {
+    padding: 14px 16px; background: var(--cream); border: 1px solid var(--border);
+    border-radius: 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+  }
+  .poetry-saved-item:hover { border-color: var(--gold); }
+  .poetry-saved-item-title { font-family: 'DM Serif Display', serif; font-size: 15px; margin-bottom: 4px; }
+  .poetry-saved-item-preview { font-size: 12px; color: var(--text-muted); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .poetry-saved-item-date { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+  .poetry-prompt-display {
+    background: var(--gold-light); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 16px;
+    font-size: 13px; font-style: italic; color: var(--text);
+    display: none;
+  }
+
+  /* ---- WHEN THINGS FEEL DARK ---- */
+  .dark-card {
+    border-radius: 20px; padding: 28px; margin-bottom: 14px;
+    border: 1px solid var(--border);
+  }
+  .dark-card-sage { background: linear-gradient(135deg, #EAF3EA, #F0F7F1); }
+  .dark-card-gold { background: linear-gradient(135deg, #FBF7EE, #FFF8ED); }
+  .dark-card-blush { background: linear-gradient(135deg, #FFF8F5, #FDF3EC); }
+  .dark-card-title {
+    font-family: 'DM Serif Display', serif; font-size: 18px;
+    color: var(--text); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dark-card p {
+    font-size: 14px; color: var(--text); line-height: 1.8; margin-bottom: 12px;
+  }
+  .dark-card p:last-child { margin-bottom: 0; }
+  .dark-card strong { color: var(--sage-deep); font-weight: 500; }
+  .dark-fact {
+    font-size: 22px; font-family: 'DM Serif Display', serif;
+    color: var(--sage-deep); font-style: italic;
+    line-height: 1.5; margin: 12px 0;
+  }
+
+  /* MOTIVATORS (editable) */
+  .motivator-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .motivator-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; background: var(--cream);
+    border: 1.5px solid var(--border); border-radius: 14px;
+    position: relative;
+  }
+  .motivator-emoji-btn {
+    font-size: 20px; flex-shrink: 0; cursor: pointer; background: none;
+    border: none; padding: 0; line-height: 1; position: relative;
+  }
+  .motivator-emoji-btn:hover { transform: scale(1.2); transition: transform 0.15s; }
+  .emoji-picker {
+    position: absolute; left: 0; top: 36px; z-index: 50;
+    background: var(--warm-white); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 10px; display: none;
+    grid-template-columns: repeat(7, 1fr); gap: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 220px;
+  }
+  .emoji-picker.open { display: grid; }
+  .emoji-opt {
+    font-size: 18px; padding: 4px; text-align: center; cursor: pointer;
+    border-radius: 6px; transition: background 0.15s; border: none; background: none;
+  }
+  .emoji-opt:hover { background: var(--sage-light); }
+  .motivator-text {
+    flex: 1; border: none; background: transparent;
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    color: var(--text); outline: none;
+  }
+  .motivator-text::placeholder { color: var(--border); }
+  .motivator-delete {
+    width: 24px; height: 24px; border-radius: 50%; border: none;
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .motivator-delete:hover { background: #FEE; color: #c0392b; }
+  .add-motivator-btn {
+    width: 100%; padding: 11px; border: 1.5px dashed var(--border);
+    border-radius: 14px; background: transparent; color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .add-motivator-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .motivator-saved-note {
+    font-size: 11px; color: var(--sage-deep); text-align: center;
+    margin-top: 8px; opacity: 0; transition: opacity 0.4s;
+  }
+  .motivator-saved-note.show { opacity: 1; }
+
+  /* ---- DARK SCREEN TABS ---- */
+  .dark-tabs {
+    display: flex; gap: 0; margin-bottom: 20px;
+    border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden;
+  }
+  .dark-tab {
+    flex: 1; padding: 11px; border: none; background: var(--cream);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+  }
+  .dark-tab.active { background: var(--sage-deep); color: white; }
+  .dark-tab:first-child { border-right: 1.5px solid var(--border); }
+
+  /* ---- POEM FILTER DROPDOWN ---- */
+  .poem-filter-select {
+    padding: 7px 12px; border-radius: 20px;
+    border: 1.5px solid var(--border); background: var(--cream);
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+    color: var(--text-muted); cursor: pointer; outline: none;
+    transition: border-color 0.2s; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237A7570'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+  .poem-filter-select:focus, .poem-filter-select:hover { border-color: var(--sage); color: var(--sage-deep); }
+
+  /* ---- POEM ACCORDION ---- */
+  .poem-item {
+    background: var(--warm-white); border: 1px solid var(--border);
+    border-radius: 16px; margin-bottom: 10px; overflow: hidden; transition: all 0.2s;
+  }
+  .poem-item:hover { border-color: var(--sage-light); }
+  .poem-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px; cursor: pointer;
+  }
+  .poem-header-left { flex: 1; }
+  .poem-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text); margin-bottom: 3px; }
+  .poem-subtitle { font-size: 12px; color: var(--text-muted); font-style: italic; }
+  .poem-chevron {
+    font-size: 12px; color: var(--text-muted); transition: transform 0.25s;
+    margin-left: 12px; flex-shrink: 0;
+  }
+  .poem-item.open .poem-chevron { transform: rotate(180deg); }
+  .poem-body {
+    display: none; padding: 0 20px 22px;
+    border-top: 1px solid var(--border);
+  }
+  .poem-item.open .poem-body { display: block; }
+  .poem-text {
+    font-family: 'Lora', serif;
+    font-size: 15px; line-height: 2.1; color: #6B6460;
+    padding-top: 18px;
+  }
+  .poem-text b, .poem-text strong { font-weight: 600; color: #4A4240; }
+  .poem-stanza { margin: 0 0 1.4em 0; }
+
+  /* ---- MOOD EDIT ---- */
+  .mood-entry { position: relative; }
+  .mood-edit-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none; font-size: 12px; color: var(--text-muted);
+    cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: all 0.2s;
+  }
+  .mood-edit-btn:hover { background: var(--border); color: var(--text); }
+  .mood-edit-area {
+    margin-top: 8px; width: 100%;
+    border: 1.5px solid var(--sage-light); border-radius: 10px;
+    padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--text); background: white; resize: none; outline: none; line-height: 1.5;
+    display: none;
+  }
+  .mood-edit-save {
+    margin-top: 6px; font-size: 12px; color: var(--sage-deep);
+    background: none; border: 1px solid var(--sage-light); border-radius: 20px;
+    padding: 4px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s; display: none;
+  }
+  .mood-edit-save:hover { background: var(--sage-light); }
+
+  /* ---- COPING LOG ---- */
+  .coping-log-entry {
+    background: var(--warm-white); border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px 20px; margin-bottom: 10px;
+  }
+  .coping-log-date { font-size: 11px; color: var(--text-muted); letter-spacing: 0.04em; margin-bottom: 8px; }
+  .coping-log-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .coping-chip {
+    background: var(--sage-bg, #EAF3EA); color: var(--sage-deep);
+    padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .coping-log-empty { font-size: 13px; color: var(--text-muted); font-style: italic; padding: 12px 4px; }
+
+  /* ---- POEM SORT + RANDOM ---- */
+  .poem-controls {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .poem-sort-btn {
+    padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border);
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+    background: var(--cream); color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+  }
+  .poem-sort-btn.active { background: var(--sage-deep); color: white; border-color: var(--sage-deep); }
+  .poem-sort-btn:hover:not(.active) { border-color: var(--sage); color: var(--sage-deep); }
+  .poem-random-btn {
+    margin-left: auto; padding: 7px 16px; border-radius: 20px;
+    border: 1.5px solid var(--gold); background: transparent;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+    color: var(--gold); cursor: pointer; transition: all 0.2s;
+  }
+  .poem-random-btn:hover { background: var(--gold); color: white; }
+  .poem-author { font-size: 11px; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.02em; }
+  .poem-mood-tag {
+    display: inline-block; font-size: 10px; padding: 3px 9px; border-radius: 10px;
+    margin-top: 5px; font-weight: 500;
+  }
+  .poem-mood-dark { background: #F0E8F5; color: #7B5EA7; }
+  .poem-mood-resilient { background: #EAF3EA; color: var(--sage-deep); }
+  .poem-mood-grounding { background: #FBF7EE; color: #9B7A3A; }
+
+  /* ---- LETTERS TO MYSELF ---- */
+  .letters-badge {
+    background: #E8613A; color: white; border-radius: 20px;
+    font-size: 10px; font-weight: 600; padding: 2px 7px; line-height: 1.4;
+  }
+  .letters-badge-inline {
+    background: #E8613A; color: white; border-radius: 20px;
+    font-size: 10px; font-weight: 600; padding: 1px 6px; line-height: 1.4;
+    vertical-align: middle; margin-left: 4px;
+  }
+  .letter-schedule-row {
+    margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .letter-schedule-label {
+    font-size: 12px; font-weight: 500; color: var(--text-muted);
+    display: block; margin-bottom: 8px; letter-spacing: 0.03em;
+  }
+  .letter-schedule-inputs { display: flex; gap: 10px; flex-wrap: wrap; }
+  .letter-date-input {
+    padding: 9px 14px; border: 1.5px solid var(--border); border-radius: 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text);
+    background: var(--cream); outline: none; transition: border-color 0.2s;
+  }
+  .letter-date-input:focus { border-color: var(--sage); }
+
+  .scheduled-letter-item {
+    background: var(--warm-white); border: 1px solid var(--border);
+    border-radius: 16px; margin-bottom: 10px; overflow: hidden;
+  }
+  .scheduled-letter-header {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px 18px; cursor: pointer;
+  }
+  .scheduled-letter-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+  .scheduled-letter-title { font-family: 'DM Serif Display', serif; font-size: 15px; color: var(--text); }
+  .scheduled-letter-date { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .scheduled-letter-actions {
+    display: flex; gap: 8px; margin-left: auto; flex-shrink: 0;
+  }
+  .letter-action-btn {
+    font-size: 11px; padding: 5px 12px; border-radius: 20px;
+    border: 1.5px solid var(--border); background: transparent;
+    color: var(--text-muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .letter-action-btn:hover { border-color: var(--sage); color: var(--sage-deep); }
+  .letter-action-btn.delete:hover { border-color: #c0392b; color: #c0392b; }
+
+  .delivered-letter-item {
+    background: var(--warm-white); border: 1px solid var(--border);
+    border-radius: 16px; margin-bottom: 10px; overflow: hidden; transition: all 0.2s;
+  }
+  .delivered-letter-item.unread { border-color: var(--gold); background: #FFFCF5; }
+  .delivered-letter-header {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px 18px; cursor: pointer;
+  }
+  .delivered-letter-icon { font-size: 22px; flex-shrink: 0; }
+  .delivered-unread-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #E8613A; flex-shrink: 0; margin-top: 6px;
+  }
+  .delivered-letter-title { font-family: 'DM Serif Display', serif; font-size: 15px; color: var(--text); }
+  .delivered-letter-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .delivered-letter-body-wrap { display: none; padding: 0 18px 20px; border-top: 1px solid var(--border); }
+  .delivered-letter-item.open .delivered-letter-body-wrap { display: block; }
+  .delivered-letter-body {
+    font-family: 'Lora', serif; font-size: 14px; color: #6B6460;
+    line-height: 1.9; padding-top: 16px; white-space: pre-wrap;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: white; padding: 10px 24px; border-radius: 50px;
+    font-size: 13px; opacity: 0; transition: all 0.3s; z-index: 100; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-eyebrow">Your Personal</div>
+    <h1>Panic <em>Toolkit</em></h1>
+    <div class="header-sub">A quiet place to come back to.</div>
+    <div class="divider"></div>
+  </div>
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen active">
+    <div class="reminder">Breathe. Stay. You're okay.</div>
+
+    <div class="home-columns">
+      <!-- LEFT COLUMN -->
+      <div class="home-col">
+        <div class="home-card" onclick="gotoGuided()">
+          <span class="home-card-icon">👣</span>
+          <div class="home-card-title">Guided Walk-Through</div>
+          <div class="home-card-desc">Step by step, from check-in to calm</div>
+        </div>
+        <div class="home-card" onclick="showScreen('ground')">
+          <span class="home-card-icon">🌱</span>
+          <div class="home-card-title">Grounding</div>
+          <div class="home-card-desc">5-4-3-2-1 senses exercise</div>
+        </div>
+        <div class="home-card" onclick="showScreen('mood')">
+          <span class="home-card-icon">📊</span>
+          <div class="home-card-title">Mood Tracker</div>
+          <div class="home-card-desc">Check in with how you're feeling</div>
+        </div>
+        <div class="home-card" onclick="showScreen('dark')">
+          <span class="home-card-icon">🌙</span>
+          <div class="home-card-title">When It's Dark</div>
+          <div class="home-card-desc">Things to read in the hardest moments</div>
+        </div>
+        <div class="home-card" onclick="showScreen('copinglog')">
+          <span class="home-card-icon">📖</span>
+          <div class="home-card-title">Coping Log</div>
+          <div class="home-card-desc">Track what you've used over time</div>
+        </div>
+      </div>
+      <!-- RIGHT COLUMN -->
+      <div class="home-col">
+        <div class="home-card" onclick="showScreen('strategies')">
+          <span class="home-card-icon">🧠</span>
+          <div class="home-card-title">My Strategies</div>
+          <div class="home-card-desc">Things that actually help you</div>
+        </div>
+        <div class="home-card" onclick="showScreen('breathe')">
+          <span class="home-card-icon">🫁</span>
+          <div class="home-card-title">Just Breathe</div>
+          <div class="home-card-desc">4-7-8 breathing exercise</div>
+        </div>
+        <div class="home-card" onclick="showScreen('poetry')">
+          <span class="home-card-icon">✍️</span>
+          <div class="home-card-title">Write a Poem</div>
+          <div class="home-card-desc">Your private writing space</div>
+        </div>
+        <div class="home-card" onclick="showScreen('motivators')">
+          <span class="home-card-icon">💛</span>
+          <div class="home-card-title">My Motivators</div>
+          <div class="home-card-desc">What keeps you going</div>
+        </div>
+        <div class="home-card" id="letters-home-card" onclick="showScreen('letters')">
+          <span class="home-card-icon">💌</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="home-card-title">Letters to Myself</div>
+            <span class="letters-badge" id="lettersBadge" style="display:none"></span>
+          </div>
+          <div class="home-card-desc">Write now, read when you're ready</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-crisis" onclick="showScreen('crisis')">
+      <div class="home-crisis-icon">🆘</div>
+      <div>
+        <div class="home-crisis-title">Crisis Resources</div>
+        <div class="home-crisis-sub">Lines to call + your safe places</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECK-IN -->
+  <div id="screen-checkin" class="screen">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <div class="progress-bar"><div class="progress-fill" style="width:20%"></div></div>
+    <div class="card">
+      <div class="card-title">How are you feeling right now?</div>
+      <div class="card-sub">Select everything that feels true. No right answer.</div>
+      <div class="feeling-grid">
+        <div class="feeling-btn" onclick="toggleFeeling(this)"><span class="feeling-icon">💨</span>Can't catch breath</div>
+        <div class="feeling-btn" onclick="toggleFeeling(this)"><span class="feeling-icon">💓</span>Heart racing</div>
+        <div class="feeling-btn" onclick="toggleFeeling(this)"><span class="feeling-icon">🌀</span>Mind is spiraling</div>
+        <div class="feeling-btn" onclick="toggleFeeling(this)"><span class="feeling-icon">😶‍🌫️</span>Numb / foggy</div>
+        <div class="feeling-btn" onclick="toggleFeeling(this)"><span class="feeling-icon">😰</span>Overwhelmed</div>
+        <div class="feeling-btn" onclick="toggleFeeling(this)"><span class="feeling-icon">😔</span>Low / heavy</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="showScreen('home')">Cancel</button>
+      <button class="btn btn-primary" onclick="showScreen('breathe'); setGuided(true)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- BREATHE -->
+  <div id="screen-breathe" class="screen">
+    <button class="back-btn" onclick="goBack('breathe')">← Back</button>
+    <div id="breathe-progress" class="progress-bar"><div class="progress-fill" style="width:40%"></div></div>
+    <div class="card">
+      <div class="card-title">4-7-8 Breathing</div>
+      <div class="card-sub">This activates your body's calming response. Even one cycle helps.</div>
+      <div class="breath-container">
+        <div class="breath-ring">
+          <div class="breath-circle" id="breathCircle">
+            <div class="breath-text">
+              <div class="breath-phase" id="breathPhase">Ready</div>
+              <div class="breath-count" id="breathNum">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="breath-label" id="breathLabel">Press start when ready</div>
+        <div class="cycles-done" id="cyclesDisplay"></div>
+        <button class="breath-start-btn" id="breathBtn" onclick="startBreath()">Start breathing</button>
+      </div>
+    </div>
+    <div id="breathe-nav" class="btn-row" style="display:none">
+      <button class="btn btn-secondary" onclick="goBack('breathe')">← Go back</button>
+      <button class="btn btn-primary" onclick="showScreen('ground'); setGuided(true)">Next step →</button>
+    </div>
+  </div>
+
+  <!-- GROUNDING -->
+  <div id="screen-ground" class="screen">
+    <button class="back-btn" onclick="goBack('ground')">← Back</button>
+    <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+    <div class="card">
+      <div class="card-title">5-4-3-2-1 Grounding</div>
+      <div class="card-sub">Anchor yourself to this exact moment. Tap each one as you find it.</div>
+      <div class="grounding-step" onclick="checkGround(this)">
+        <div class="grounding-num">5</div>
+        <div><div class="grounding-sense">👁️ 5 things you can see</div><div class="grounding-prompt">Look around slowly. Name them quietly.</div></div>
+      </div>
+      <div class="grounding-step" onclick="checkGround(this)">
+        <div class="grounding-num">4</div>
+        <div><div class="grounding-sense">✋ 4 things you can touch</div><div class="grounding-prompt">Your clothes, a surface, your own hands.</div></div>
+      </div>
+      <div class="grounding-step" onclick="checkGround(this)">
+        <div class="grounding-num">3</div>
+        <div><div class="grounding-sense">👂 3 things you can hear</div><div class="grounding-prompt">Listen for distant sounds too.</div></div>
+      </div>
+      <div class="grounding-step" onclick="checkGround(this)">
+        <div class="grounding-num">2</div>
+        <div><div class="grounding-sense">👃 2 things you can smell</div><div class="grounding-prompt">Even subtle scents count.</div></div>
+      </div>
+      <div class="grounding-step" onclick="checkGround(this)">
+        <div class="grounding-num">1</div>
+        <div><div class="grounding-sense">👅 1 thing you can taste</div><div class="grounding-prompt">Notice what's already there.</div></div>
+      </div>
+    </div>
+    <div id="ground-nav" class="btn-row" style="display:none">
+      <button class="btn btn-secondary" onclick="goBack('ground')">← Go back</button>
+      <button class="btn btn-primary" onclick="showScreen('strategies'); setGuided(true)">Next step →</button>
+    </div>
+    <div id="ground-skip" class="btn-row">
+      <button class="btn btn-secondary" onclick="goBack('ground')">← Go back</button>
+      <button class="btn btn-primary" onclick="showScreen('strategies'); setGuided(true)" style="background: var(--text-muted)">Skip for now →</button>
+    </div>
+  </div>
+
+  <!-- STRATEGIES -->
+  <div id="screen-strategies" class="screen">
+    <button class="back-btn" onclick="goBack('strategies')">← Back</button>
+    <div class="progress-bar"><div class="progress-fill" style="width:80%"></div></div>
+    <div class="card">
+      <div class="card-title">Your Coping Strategies</div>
+      <div class="card-sub">These are things you already know work for you. Pick one to do right now.</div>
+      <div class="strategy-list">
+        <div class="strategy-item" onclick="toggleStrategy(this)">
+          <span class="strategy-icon">✍️</span>
+          <div class="strategy-text"><div>Write a poem</div><div class="strategy-desc">Even a few lines. Let it be messy.</div></div>
+          <div class="check-mark">✓</div>
+        </div>
+        <div class="strategy-item" onclick="toggleStrategy(this)">
+          <span class="strategy-icon">🚶‍♀️</span>
+          <div class="strategy-text"><div>Go for a walk</div><div class="strategy-desc">Even 10 minutes outside helps reset.</div></div>
+          <div class="check-mark">✓</div>
+        </div>
+        <div class="strategy-item" onclick="toggleStrategy(this)">
+          <span class="strategy-icon">🎵</span>
+          <div class="strategy-text"><div>Put on a song</div><div class="strategy-desc">Dance even a little. Movement matters.</div></div>
+          <div class="check-mark">✓</div>
+        </div>
+        <div class="strategy-item" onclick="toggleStrategy(this)">
+          <span class="strategy-icon">🚌</span>
+          <div class="strategy-text"><div>Take the NJ Transit bus</div><div class="strategy-desc">One of your safe places. Motion can soothe.</div></div>
+          <div class="check-mark">✓</div>
+        </div>
+        <div class="strategy-item" onclick="toggleStrategy(this)">
+          <span class="strategy-icon">🏫</span>
+          <div class="strategy-text"><div>Go to the school alcove</div><div class="strategy-desc">Your safe corner. You can just exist there.</div></div>
+          <div class="check-mark">✓</div>
+        </div>
+        <div class="strategy-item" onclick="toggleStrategy(this)">
+          <span class="strategy-icon">🌬️</span>
+          <div class="strategy-text"><div>More 4-7-8 breathing</div><div class="strategy-desc">You can always do another round.</div></div>
+          <div class="check-mark">✓</div>
+        </div>
+      </div>
+    </div>
+    <div id="strat-nav" class="btn-row" style="display:none">
+      <button class="btn btn-secondary" onclick="goBack('strategies')">← Go back</button>
+      <button class="btn btn-primary" onclick="logStrategiesAndFinish()">I did something ✓</button>
+    </div>
+    <div id="strat-skip" class="btn-row">
+      <button class="btn btn-secondary" onclick="goBack('strategies')">← Go back</button>
+      <button class="btn btn-primary" onclick="showScreen('finish')" style="background: var(--text-muted)">Continue</button>
+    </div>
+  </div>
+
+  <!-- COPING LOG -->
+  <div id="screen-copinglog" class="screen">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <div class="card-title" style="margin-bottom: 6px; font-family: 'DM Serif Display', serif; font-size: 24px;">Coping Log</div>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6;">Every time you use a strategy it gets recorded here. This is evidence that you keep showing up.</p>
+    <div id="copingLogEntries"></div>
+  </div>
+
+  <!-- WHEN IT'S DARK -->
+  <div id="screen-dark" class="screen">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <div class="card-title" style="margin-bottom: 6px; font-family: 'DM Serif Display', serif; font-size: 24px;">When Things Feel Dark</div>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6;">Read slowly. You don't have to believe all of this right now. Just let it be here with you.</p>
+
+    <!-- Tab Toggle -->
+    <div class="dark-tabs">
+      <button class="dark-tab active" id="tab-statements" onclick="switchDarkTab('statements')">Statements</button>
+      <button class="dark-tab" id="tab-poems" onclick="switchDarkTab('poems')">Poems</button>
+    </div>
+
+    <!-- STATEMENTS -->
+    <div id="dark-statements">
+      <div class="dark-card dark-card-sage">
+        <div class="dark-card-title">🌊 This feeling is not permanent.</div>
+        <p>Every low you've ever felt has eventually lifted — even the ones that seemed like they never would. Your nervous system is in overdrive right now, not broken. <strong>This exact moment will pass.</strong></p>
+        <p>You have survived 100% of your worst days so far.</p>
+      </div>
+
+      <div class="dark-card dark-card-gold">
+        <div class="dark-card-title">🧠 Your brain is lying to you right now.</div>
+        <p>When you're in a low, your brain offers you evidence that things are hopeless, that you're not enough, that this is just how it will always be. <strong>That is the depression speaking — not the truth.</strong></p>
+        <div class="dark-fact">"I don't even believe the kind things anymore."</div>
+        <p>You wrote that. You knew it wasn't right. That awareness — even when it hurts — is your intelligence working for you, not against you.</p>
+      </div>
+
+      <div class="dark-card dark-card-sage">
+        <div class="dark-card-title">📚 You are more than your grades.</div>
+        <p>The version of you that exists when no one is grading anything — the one who writes poems at midnight, who teaches middle schoolers, who takes the bus just to feel the motion — that person is real and worth knowing.</p>
+        <p><strong>Your worth is not a GPA. It never was.</strong></p>
+      </div>
+
+      <div class="dark-card dark-card-blush">
+        <div class="dark-card-title">🐶 Things worth staying for.</div>
+        <p>The golden retriever you're going to have someday. The summer of travel you're going to take. The places you haven't been yet. The version of you that gets to exist on the other side of this.</p>
+        <p>The college acceptance letters you're going to read. The things you're going to build. The poems you haven't written yet.</p>
+        <p><strong>You have things ahead of you worth seeing.</strong></p>
+      </div>
+
+      <div class="dark-card dark-card-gold" style="text-align: center;">
+        <div class="dark-card-title" style="justify-content: center;">💚 If it's too much to hold alone</div>
+        <p style="text-align: center;">You don't have to figure this out by yourself. Reaching out is not weakness — it's the hardest and bravest thing.</p>
+        <button class="btn btn-primary" onclick="showScreen('crisis')" style="margin-top: 8px; background: var(--sage-deep);">See crisis lines →</button>
+      </div>
+    </div>
+
+    <!-- POEMS -->
+    <div id="dark-poems" style="display:none">
+      <div id="darkPoemList"></div>
+      <p id="darkPoemsEmpty" style="font-size: 13px; color: var(--text-muted); font-style: italic; padding: 16px 4px; display:none;">No poems added yet.</p>
+    </div>
+  </div>
+
+  <!-- POETRY SPACE -->
+  <div id="screen-poetry" class="screen">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <div class="card">
+      <div class="card-title">Write a Poem</div>
+      <div class="card-sub">This is yours. No one else sees it. Let it be unfinished, honest, strange.</div>
+
+      <div class="poetry-toolbar">
+        <span style="font-size: 11px; color: var(--text-muted); align-self: center; margin-right: 4px;">Prompts:</span>
+        <button class="poetry-prompt-btn" onclick="setPrompt('Right now, I feel like...')">Right now, I feel like…</button>
+        <button class="poetry-prompt-btn" onclick="setPrompt('The thing I can\'t say out loud is...')">The thing I can't say out loud…</button>
+        <button class="poetry-prompt-btn" onclick="setPrompt('I want to tell my future self...')">To my future self…</button>
+        <button class="poetry-prompt-btn" onclick="setPrompt('If my body could speak, it would say...')">If my body could speak…</button>
+        <button class="poetry-prompt-btn" onclick="setPrompt('Today felt like...')">Today felt like…</button>
+      </div>
+
+      <div class="poetry-prompt-display" id="poetryPromptDisplay"></div>
+      <input class="poetry-title-input" id="poetryTitle" placeholder="Untitled" type="text">
+
+      <div class="poetry-format-bar">
+        <button class="fmt-btn fmt-btn-bold" id="fmtBold" onmousedown="event.preventDefault(); formatPoetry('bold')" title="Bold">B</button>
+        <button class="fmt-btn fmt-btn-italic" id="fmtItalic" onmousedown="event.preventDefault(); formatPoetry('italic')" title="Italic">I</button>
+        <button class="fmt-btn fmt-btn-underline" id="fmtUnderline" onmousedown="event.preventDefault(); formatPoetry('underline')" title="Underline">U</button>
+      </div>
+
+      <div class="poetry-editor" id="poetryBody" contenteditable="true"
+        data-placeholder="Start anywhere. A word, a fragment, whatever comes."
+        onkeyup="updateFormatBtns()" onmouseup="updateFormatBtns()"
+        oninput="updateFormatBtns()"></div>
+
+      <div class="poetry-actions">
+        <button class="poetry-clear-btn" onclick="clearPoetry()">Clear</button>
+        <button class="poetry-save-btn" onclick="savePoem()">Save poem</button>
+      </div>
+    </div>
+
+    <div class="poetry-saved-list" id="poetrySavedList"></div>
+  </div>
+
+  <!-- MOOD TRACKER -->
+  <div id="screen-mood" class="screen">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <div class="card">
+      <div class="card-title">Mood Check-In</div>
+      <div class="card-sub">How are you feeling today? You can be honest here.</div>
+      <div class="mood-date-label" id="moodDateLabel"></div>
+      <div class="mood-emojis">
+        <div class="mood-emoji-btn" onclick="selectMood(this, '😔', 'Low')"><span class="emoji">😔</span><span class="label">Low</span></div>
+        <div class="mood-emoji-btn" onclick="selectMood(this, '😟', 'Anxious')"><span class="emoji">😟</span><span class="label">Anxious</span></div>
+        <div class="mood-emoji-btn" onclick="selectMood(this, '😐', 'Okay')"><span class="emoji">😐</span><span class="label">Okay</span></div>
+        <div class="mood-emoji-btn" onclick="selectMood(this, '🙂', 'Good')"><span class="emoji">🙂</span><span class="label">Good</span></div>
+        <div class="mood-emoji-btn" onclick="selectMood(this, '😊', 'Great')"><span class="emoji">😊</span><span class="label">Great</span></div>
+      </div>
+      <div class="mood-note-label">Anything you want to note? (optional)</div>
+      <textarea class="mood-textarea" id="moodNote" placeholder="What's going on today? What's on your mind?"></textarea>
+      <button class="mood-save-btn" id="moodSaveBtn" onclick="saveMood()" disabled>Choose a mood to log it</button>
+    </div>
+
+    <div class="mood-log" id="moodLog">
+      <div class="mood-log-title">Recent Check-ins</div>
+      <div id="moodEntries"></div>
+    </div>
+  </div>
+
+  <!-- MOTIVATORS -->
+  <div id="screen-motivators" class="screen">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <div class="card">
+      <div class="card-title">My Motivators</div>
+      <div class="card-sub">The things that make staying worth it. Edit them any time — they're yours.</div>
+      <div class="motivator-list" id="motivatorList"></div>
+      <button class="add-motivator-btn" onclick="addMotivator()">+ Add something</button>
+      <div class="motivator-saved-note" id="motivatorSavedNote">Saved ✓</div>
+    </div>
+  </div>
+
+  <!-- LETTERS TO MYSELF -->
+  <div id="screen-letters" class="screen">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+
+    <!-- TABS: Compose / Mailbox -->
+    <div class="dark-tabs" style="margin-bottom:20px">
+      <button class="dark-tab active" id="ltab-compose" onclick="switchLettersTab('compose')">✏️ Write a Letter</button>
+      <button class="dark-tab" id="ltab-mailbox" onclick="switchLettersTab('mailbox')">📬 Mailbox <span class="letters-badge-inline" id="mailboxBadgeInline" style="display:none"></span></button>
+    </div>
+
+    <!-- COMPOSE -->
+    <div id="letters-compose">
+      <div class="card">
+        <div class="card-title" style="font-size:18px;margin-bottom:4px">Dear me,</div>
+        <div class="card-sub">Write something you need to hear. Schedule it for when you might need it most.</div>
+
+        <input class="poetry-title-input" id="letterTitle" placeholder="A title for this letter…" type="text" style="margin-bottom:12px">
+
+        <div class="poetry-format-bar">
+          <button class="fmt-btn fmt-btn-bold" id="lfmtBold" onmousedown="event.preventDefault(); formatLetter('bold')" title="Bold">B</button>
+          <button class="fmt-btn fmt-btn-italic" id="lfmtItalic" onmousedown="event.preventDefault(); formatLetter('italic')" title="Italic">I</button>
+          <button class="fmt-btn fmt-btn-underline" id="lfmtUnderline" onmousedown="event.preventDefault(); formatLetter('underline')" title="Underline">U</button>
+        </div>
+
+        <div class="poetry-editor" id="letterBody" contenteditable="true"
+          data-placeholder="Start writing. No one else will read this."
+          onkeyup="updateLetterFmtBtns()" onmouseup="updateLetterFmtBtns()"></div>
+
+        <div class="letter-schedule-row">
+          <label class="letter-schedule-label">Deliver this letter on</label>
+          <div class="letter-schedule-inputs">
+            <input type="date" class="letter-date-input" id="letterDate">
+            <input type="time" class="letter-date-input" id="letterTime" value="09:00">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="poetry-clear-btn" onclick="clearLetter()">Clear</button>
+          <button class="poetry-save-btn" onclick="saveLetter()" id="letterSaveBtn">Schedule letter</button>
+        </div>
+      </div>
+
+      <!-- Scheduled (unsent) letters -->
+      <div id="scheduledLettersList"></div>
+    </div>
+
+    <!-- MAILBOX -->
+    <div id="letters-mailbox" style="display:none">
+      <div id="mailboxEmpty" style="font-size:13px;color:var(--text-muted);font-style:italic;padding:16px 4px;display:none">
+        Nothing here yet. Letters you schedule will arrive when their time comes.
+      </div>
+      <div id="deliveredLettersList"></div>
+    </div>
+  </div>
+
+  <!-- CRISIS -->
+  <div id="screen-crisis" class="screen">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <div class="crisis-box">
+      <h4>🆘 Crisis Lines</h4>
+      <div class="crisis-line"><span>988 Suicide & Crisis Lifeline</span><span class="crisis-num">Call / Text 988</span></div>
+      <div class="crisis-line"><span>NYC Well (NYC)</span><span class="crisis-num">1-888-NYC-WELL</span></div>
+      <div class="crisis-line"><span>Text Line (NYC)</span><span class="crisis-num">Text WELL to 65173</span></div>
+      <div class="crisis-line"><span>Emergency</span><span class="crisis-num">911</span></div>
+    </div>
+    <div class="card" style="margin-top:0">
+      <div class="card-title" style="font-size:16px; margin-bottom:8px">Your Safe Places</div>
+      <div class="places-list">
+        <div class="place-chip">🚌 NJ Transit Bus</div>
+        <div class="place-chip">🏫 School Alcove</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINISH -->
+  <div id="screen-finish" class="screen">
+    <div class="finish-screen">
+      <div class="finish-icon">🌿</div>
+      <div class="finish-title">You showed up for yourself.</div>
+      <div class="finish-sub">That takes real strength — especially when everything feels like too much. You did something hard and you're still here.</div>
+      <div class="affirmation-box">"You are not your panic. You are not your grades. You are not the pressure. You are the person who, even in the hardest moments, keeps going."</div>
+      <div class="reminder" style="font-size:13px; font-family:'DM Sans',sans-serif; font-style:normal; line-height: 1.7; text-align:left; margin-bottom:16px">
+        <strong>Remember your motivators:</strong><br>
+        <span id="finishMotivators"></span>
+      </div>
+      <button class="btn btn-primary" onclick="showScreen('home')" style="margin-top:0">Back to home</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---- State ----
+  let isGuided = false;
+  let breathRunning = false;
+  let breathCycles = 0;
+  let selectedMoodEmoji = null;
+  let selectedMoodLabel = null;
+
+  // ---- Default motivators ----
+  const defaultMotivators = [
+    { icon: '🏆', text: 'Future accomplishments and everything I\'m going to build' },
+    { icon: '🐶', text: 'A golden retriever someday' },
+    { icon: '💛', text: 'My family and the teachers who believe in me' },
+    { icon: '✈️', text: 'That summer of travel' },
+    { icon: '📬', text: 'College acceptance letters I\'m going to read' },
+  ];
+
+  // ---- Persistent storage (localStorage) ----
+  function saveStore() {
+    try { localStorage.setItem('panicToolkitStore', JSON.stringify(store)); } catch(e) {}
+  }
+
+  function loadStore() {
+    try {
+      const saved = localStorage.getItem('panicToolkitStore');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          motivators: parsed.motivators || JSON.parse(JSON.stringify(defaultMotivators)),
+          moods: parsed.moods || [],
+          poems: parsed.poems || [],
+          copingLog: parsed.copingLog || [],
+          letters: parsed.letters || []
+        };
+      }
+    } catch(e) {}
+    return {
+      motivators: JSON.parse(JSON.stringify(defaultMotivators)),
+      moods: [],
+      poems: [],
+      copingLog: [],
+      letters: []
+    };
+  }
+
+  let store = loadStore();
+
+  // ---- Navigation ----
+  function gotoGuided() { isGuided = true; showScreen('checkin'); }
+  function setGuided(v) { isGuided = v; }
+
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (name === 'mood') initMoodScreen();
+    if (name === 'motivators') renderMotivators();
+    if (name === 'poetry') renderSavedPoems();
+    if (name === 'finish') renderFinishMotivators();
+    if (name === 'breathe') resetBreath();
+    if (name === 'letters') { checkLetterDelivery(); initLettersScreen(); }
+  }
+
+  function goBack(from) {
+    const prevMap = { breathe: 'checkin', ground: 'breathe', strategies: 'ground' };
+    if (isGuided && prevMap[from]) showScreen(prevMap[from]);
+    else showScreen('home');
+  }
+
+  // ---- Check-in ----
+  function toggleFeeling(el) { el.classList.toggle('selected'); }
+
+  // ---- Breathing ----
+  function resetBreath() {
+    breathRunning = false; breathCycles = 0;
+    document.getElementById('breathPhase').textContent = 'Ready';
+    document.getElementById('breathNum').textContent = '—';
+    document.getElementById('breathLabel').textContent = 'Press start when ready';
+    document.getElementById('cyclesDisplay').textContent = '';
+    document.getElementById('breathCircle').className = 'breath-circle';
+    document.getElementById('breathBtn').style.display = '';
+    document.getElementById('breathe-nav').style.display = 'none';
+  }
+
+  function startBreath() {
+    if (breathRunning) return;
+    breathRunning = true;
+    document.getElementById('breathBtn').style.display = 'none';
+    breathCycles = 0;
+    runBreathCycle();
+  }
+
+  function runBreathCycle() {
+    const circle = document.getElementById('breathCircle');
+    const phase = document.getElementById('breathPhase');
+    const num = document.getElementById('breathNum');
+    const label = document.getElementById('breathLabel');
+    phase.textContent = 'Inhale'; label.textContent = 'Breathe in slowly through your nose';
+    circle.className = 'breath-circle inhale';
+    let count = 4; num.textContent = count;
+    const ii = setInterval(() => {
+      count--;
+      if (count > 0) { num.textContent = count; } else {
+        clearInterval(ii);
+        phase.textContent = 'Hold'; label.textContent = 'Hold your breath gently';
+        circle.className = 'breath-circle hold';
+        let hc = 7; num.textContent = hc;
+        const hi = setInterval(() => {
+          hc--;
+          if (hc > 0) { num.textContent = hc; } else {
+            clearInterval(hi);
+            phase.textContent = 'Exhale'; label.textContent = 'Breathe out slowly through your mouth';
+            circle.className = 'breath-circle exhale';
+            let ec = 8; num.textContent = ec;
+            const ei = setInterval(() => {
+              ec--;
+              if (ec > 0) { num.textContent = ec; } else {
+                clearInterval(ei);
+                breathCycles++;
+                document.getElementById('cyclesDisplay').textContent = `Cycle ${breathCycles} complete ✓`;
+                if (breathCycles < 3) { setTimeout(runBreathCycle, 1000); }
+                else {
+                  phase.textContent = 'Done ✓'; num.textContent = '';
+                  label.textContent = 'Beautiful. Your nervous system is calmer now.';
+                  circle.className = 'breath-circle';
+                  document.getElementById('breathe-nav').style.display = 'flex';
+                  breathRunning = false;
+                }
+              }
+            }, 1000);
+          }
+        }, 1000);
+      }
+    }, 1000);
+  }
+
+  // ---- Grounding ----
+  function checkGround(el) {
+    el.classList.toggle('checked');
+    const checked = document.querySelectorAll('#screen-ground .grounding-step.checked').length;
+    document.getElementById('ground-nav').style.display = checked >= 3 ? 'flex' : 'none';
+    document.getElementById('ground-skip').style.display = checked >= 3 ? 'none' : 'flex';
+  }
+
+  // ---- Strategies ----
+  function toggleStrategy(el) {
+    el.classList.toggle('active');
+    const any = document.querySelectorAll('#screen-strategies .strategy-item.active').length > 0;
+    document.getElementById('strat-nav').style.display = any ? 'flex' : 'none';
+    document.getElementById('strat-skip').style.display = any ? 'none' : 'flex';
+  }
+
+  function logStrategiesAndFinish() {
+    const active = [...document.querySelectorAll('#screen-strategies .strategy-item.active')];
+    if (active.length > 0) {
+      const strategies = active.map(el => el.querySelector('.strategy-text div:first-child').textContent.trim());
+      store.copingLog.unshift({
+        date: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
+        strategies
+      });
+      saveStore();
+    }
+    showScreen('finish');
+  }
+
+  function renderCopingLog() {
+    const container = document.getElementById('copingLogEntries');
+    if (store.copingLog.length === 0) {
+      container.innerHTML = '<div class="coping-log-empty">No entries yet. Every time you check off a strategy it will appear here.</div>';
+      return;
+    }
+    container.innerHTML = store.copingLog.map(entry => `
+      <div class="coping-log-entry">
+        <div class="coping-log-date">${entry.date}</div>
+        <div class="coping-log-chips">${entry.strategies.map(s => `<span class="coping-chip">${s}</span>`).join('')}</div>
+      </div>
+    `).join('');
+  }
+
+  // ---- Mood Tracker ----
+  function initMoodScreen() {
+    const now = new Date();
+    document.getElementById('moodDateLabel').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    renderMoodEntries();
+    selectedMoodEmoji = null; selectedMoodLabel = null;
+    document.querySelectorAll('.mood-emoji-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('moodNote').value = '';
+    document.getElementById('moodSaveBtn').disabled = true;
+    document.getElementById('moodSaveBtn').textContent = 'Choose a mood to log it';
+  }
+
+  function selectMood(el, emoji, label) {
+    document.querySelectorAll('.mood-emoji-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedMoodEmoji = emoji; selectedMoodLabel = label;
+    const btn = document.getElementById('moodSaveBtn');
+    btn.disabled = false; btn.textContent = `Log: ${emoji} ${label}`;
+  }
+
+  function saveMood() {
+    if (!selectedMoodEmoji) return;
+    const note = document.getElementById('moodNote').value.trim();
+    const entry = {
+      emoji: selectedMoodEmoji,
+      label: selectedMoodLabel,
+      note,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    };
+    store.moods.unshift(entry);
+    saveStore();
+    showToast('Mood logged ✓');
+    initMoodScreen();
+  }
+
+  function renderMoodEntries() {
+    const container = document.getElementById('moodEntries');
+    if (store.moods.length === 0) {
+      container.innerHTML = '<div class="mood-empty">No check-ins yet. This is where your entries will live.</div>';
+      return;
+    }
+    container.innerHTML = store.moods.slice(0, 10).map((e, i) => `
+      <div class="mood-entry" id="mood-entry-${i}">
+        <div class="mood-entry-emoji">${e.emoji}</div>
+        <div style="flex:1">
+          <div class="mood-entry-date">${e.date} · ${e.label}</div>
+          <div class="mood-entry-text" id="mood-text-${i}">${e.note || ''}</div>
+          <textarea class="mood-edit-area" id="mood-edit-${i}" rows="2">${e.note || ''}</textarea>
+          <button class="mood-edit-save" id="mood-save-${i}" onclick="saveMoodEdit(${i})">Save note</button>
+        </div>
+        <button class="mood-edit-btn" onclick="toggleMoodEdit(${i})">✏️</button>
+      </div>
+    `).join('');
+  }
+
+  function toggleMoodEdit(i) {
+    const area = document.getElementById(`mood-edit-${i}`);
+    const saveBtn = document.getElementById(`mood-save-${i}`);
+    const textEl = document.getElementById(`mood-text-${i}`);
+    const isOpen = area.style.display === 'block';
+    area.style.display = isOpen ? 'none' : 'block';
+    saveBtn.style.display = isOpen ? 'none' : 'inline-block';
+    textEl.style.display = isOpen ? '' : 'none';
+    if (!isOpen) area.focus();
+  }
+
+  function saveMoodEdit(i) {
+    const area = document.getElementById(`mood-edit-${i}`);
+    store.moods[i].note = area.value.trim();
+    saveStore();
+    renderMoodEntries();
+    showToast('Note updated ✓');
+  }
+
+  // ---- Poetry ----
+  const prompts = {
+    'Right now, I feel like...': 'Right now, I feel like...',
+    "The thing I can't say out loud is...": "The thing I can't say out loud is...",
+    'I want to tell my future self...': 'Dear future me,',
+    'If my body could speak, it would say...': 'If my body could speak, it would say...',
+    'Today felt like...': 'Today felt like...'
+  };
+
+  function setPrompt(key) {
+    const display = document.getElementById('poetryPromptDisplay');
+    display.textContent = '✦  ' + key;
+    display.style.display = 'block';
+    const body = document.getElementById('poetryBody');
+    if (!body.textContent.trim()) {
+      body.innerHTML = prompts[key] + '\n';
+      // move cursor to end
+      const range = document.createRange();
+      range.selectNodeContents(body);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    body.focus();
+  }
+
+  function formatPoetry(cmd) {
+    document.execCommand(cmd, false, null);
+    document.getElementById('poetryBody').focus();
+    updateFormatBtns();
+  }
+
+  function updateFormatBtns() {
+    document.getElementById('fmtBold').classList.toggle('active', document.queryCommandState('bold'));
+    document.getElementById('fmtItalic').classList.toggle('active', document.queryCommandState('italic'));
+    document.getElementById('fmtUnderline').classList.toggle('active', document.queryCommandState('underline'));
+  }
+
+  function clearPoetry() {
+    document.getElementById('poetryTitle').value = '';
+    document.getElementById('poetryBody').innerHTML = '';
+    document.getElementById('poetryPromptDisplay').style.display = 'none';
+    updateFormatBtns();
+  }
+
+  function savePoem() {
+    const title = document.getElementById('poetryTitle').value.trim() || 'Untitled';
+    const bodyEl = document.getElementById('poetryBody');
+    const bodyHTML = bodyEl.innerHTML.trim();
+    const bodyText = bodyEl.textContent.trim();
+    if (!bodyText) { showToast('Write something first'); return; }
+    store.poems.unshift({
+      title,
+      bodyHTML,
+      body: bodyText,
+      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      preview: bodyText.slice(0, 60)
+    });
+    saveStore();
+    clearPoetry();
+    renderSavedPoems();
+    showToast('Poem saved ✓');
+  }
+
+  function renderSavedPoems() {
+    const list = document.getElementById('poetrySavedList');
+    if (store.poems.length === 0) { list.innerHTML = ''; return; }
+    list.innerHTML = `
+      <div class="poetry-saved-title">Saved poems (${store.poems.length})</div>
+      ${store.poems.map((p, i) => `
+        <div class="poetry-saved-item" onclick="loadPoem(${i})">
+          <div class="poetry-saved-item-title">${p.title}</div>
+          <div class="poetry-saved-item-preview">${p.preview}${p.body.length > 60 ? '…' : ''}</div>
+          <div class="poetry-saved-item-date">${p.date}</div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function loadPoem(i) {
+    const p = store.poems[i];
+    document.getElementById('poetryTitle').value = p.title;
+    document.getElementById('poetryBody').innerHTML = p.bodyHTML || p.body;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  const EMOJI_OPTIONS = ['🏆','🐶','💛','✈️','📬','⭐','🌟','💫','🌸','🎯','🌈','🦋','🔥','💎','🌙','☀️','🌊','🌿','🍀','🎵','📖','✍️','💪','🧠','❤️','🕊️','🎨','🌺','🍃','💐','🌻','🦋','🐾','🌙','⚡','🏅','🎓','🛤️','🗺️','🔑','🌄'];
+
+  function renderMotivators() {
+    const list = document.getElementById('motivatorList');
+    list.innerHTML = store.motivators.map((m, i) => `
+      <div class="motivator-item" id="mot-item-${i}">
+        <div style="position:relative">
+          <button class="motivator-emoji-btn" onclick="toggleEmojiPicker(${i})" title="Change emoji">${m.icon}</button>
+          <div class="emoji-picker" id="emoji-picker-${i}">
+            ${EMOJI_OPTIONS.map(e => `<button class="emoji-opt" onmousedown="event.preventDefault(); pickEmoji(${i}, '${e}')">${e}</button>`).join('')}
+          </div>
+        </div>
+        <input class="motivator-text" value="${m.text.replace(/"/g, '&quot;')}"
+          onchange="updateMotivator(${i}, this.value)"
+          onblur="saveMotivators()"
+          placeholder="Add something meaningful…">
+        <button class="motivator-delete" onclick="deleteMotivator(${i})" title="Remove">×</button>
+      </div>
+    `).join('');
+  }
+
+  function toggleEmojiPicker(i) {
+    // close all others first
+    document.querySelectorAll('.emoji-picker').forEach((p, j) => {
+      if (j !== i) p.classList.remove('open');
+    });
+    document.getElementById(`emoji-picker-${i}`).classList.toggle('open');
+  }
+
+  function pickEmoji(i, emoji) {
+    store.motivators[i].icon = emoji;
+    document.getElementById(`emoji-picker-${i}`).classList.remove('open');
+    renderMotivators();
+    saveStore();
+  }
+
+  // Close pickers on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.motivator-emoji-btn') && !e.target.closest('.emoji-picker')) {
+      document.querySelectorAll('.emoji-picker').forEach(p => p.classList.remove('open'));
+    }
+  });
+
+  function updateMotivator(i, val) {
+    store.motivators[i].text = val;
+    saveStore();
+  }
+
+  function deleteMotivator(i) {
+    store.motivators.splice(i, 1);
+    renderMotivators();
+    saveMotivators();
+  }
+
+  function addMotivator() {
+    const icons = ['⭐', '🌟', '💫', '🌸', '🎯', '🌈', '🦋'];
+    store.motivators.push({ icon: icons[store.motivators.length % icons.length], text: '' });
+    renderMotivators();
+    const inputs = document.querySelectorAll('.motivator-text');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }
+
+  function saveMotivators() {
+    saveStore();
+    const note = document.getElementById('motivatorSavedNote');
+    note.classList.add('show');
+    setTimeout(() => note.classList.remove('show'), 2000);
+  }
+
+  function renderFinishMotivators() {
+    const el = document.getElementById('finishMotivators');
+    el.textContent = store.motivators.filter(m => m.text).map(m => m.text).join(' · ');
+  }
+
+  // ---- Toast ----
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ---- Dark Screen Tabs ----
+  function switchDarkTab(tab) {
+    document.getElementById('dark-statements').style.display = tab === 'statements' ? 'block' : 'none';
+    document.getElementById('dark-poems').style.display = tab === 'poems' ? 'block' : 'none';
+    document.getElementById('tab-statements').classList.toggle('active', tab === 'statements');
+    document.getElementById('tab-poems').classList.toggle('active', tab === 'poems');
+    if (tab === 'poems') renderDarkPoems();
+  }
+
+  let poemSortMode = 'alpha';
+  let poemFilterMode = 'all';
+
+  const darkPoems = [
+    {
+      title: "At the Door of Your Hidden Heart",
+      author: "Prishaa Shrimali",
+      mood: "grounding",
+      text: `There is a way your voice\nfades\nat the edges,\nlike a photograph left too long in the sun,\ncolors melting where the truth tries to seep through.\n\nSome nights\nyour voice arrives before you do—\nthin at the edges,\ndog-eared corners once lovingly creased\nnow worn like paper that's been folded\nand unfolded\ntoo many times.\n\nYou say <em>It's nothing.</em>\nYou say <em>I'm fine.</em>\nBut the air around you trembles\nlike a curtain in a room\nwhere the window was left open\nby accident\nand your sentences wobble,\nas if each word is balancing\non a tightrope stretched across\nthe dark room of your chest.\n\nI've learned to hear the things\nyou never say aloud,\nthe way your secrets grow heavy\nin the corners of your heart,\nthe way your breath drags\nas if it's carrying\na suitcase you never packed\non purpose.\n\nI've heard some of the depth behind your laughter,\nthat small, shivering animal\ncurling itself beneath your ribs,\nscared of its own shadow,\ntrying not to make a sound\nin case someone notices.\n\nThis nocturnal creature of yours—\nyou\n—keeps training itself how to survive\nyour dark.\n\nAt night,\nwhen the lights go out,\nwhen the world stops performing,\nyour shadow pulls inward,\ntrying to make itself smaller,\nas if shrinking could save you\nfrom the demons in the dark,\nand your silence grows louder,\na soft percussion of breath\nand almost-cries\nthat never learned how to climb\ninto daylight.\n\nI know the shape of your loneliness,\nhow it paces the floorboards\nafter midnight,\nhow it presses its forehead\nagainst the closed door\nof your ribcage\nand waits\nfor someone to knock back.\n\nSo I move closer,\nnot to pry,\nbut to stand at the threshold\nof whatever door you've left\nhalf-latched,\nhalf-afraid,\nhalf-hoping someone will push it open.\n\nI step forward.\nNot to fix you;\njust to be the one\nthat answers.\nIt's me.\n\nRelease your heart,\nthat harsh desert\npretending it's a garden.\nI can feel the heat of it now,\nthe cracked earth,\nthe way you wander your own thoughts\nlike a traveler lost in spacetime\nsearching for water\nin a place that forgot how to rain.\n\nWhen your heart finally permits the downpour,\nI'll stand in the storm with you.\nI won't flinch.\nLet the sky split open.\nLet the water rise.\nI'll wade through every complicated current,\nankle-deep, knee-deep,\nuntil I find you\nin the eye\nwhere the thunder softens,\nwhere you stopped holding yourself together.\n\nI'll hold you then,\nthere in that surreal space,\nsurrounded by swirling memories\nof everything you were too tired to file away.\n\nShow me the version of you\nthat hides behind the bright one.\nShow me the shadow\nthat trails behind your masked moments.\nShow me the iteration\nthat doesn't know how to smile on command.\nShow me the exhaustion\nyou keep folded\nbeneath piles of costumes\nin the quietest drawer of your chest.\n\nYou don't have to hand me the whole ordeal.\nJust the part that's too heavy\nfor one pair of hands.\nI'll hold it with you.\nI'll hold you with it.\n\nAnd if all you can offer\nis a quaking hand,\na broken breath,\na thought you only whisper to yourself,\na cry that never learned\nhow to raise its voice—\nI'll hear it.\nI'll stay.\nI'll answer.\n\nYour silence\nis not invisible\nto me.\n\nYour silence\nis not alone.\n\nYou are not alone.`
+    },
+    {
+      title: "breathe. stay. you're okay.",
+      author: "Prishaa Shrimali",
+      mood: "grounding",
+      text: `<em>i promise i'll do better tomorrow</em>\n<em>i promise i'll be better tomorrow</em>\ni keep repeating the same tired thoughts,\nbut the only broken record here\nis every one of my report cards.\n\nmy breath breaks open—\na panic rising,\nracing,\nmy chest tightening on instinct—\nthe worst is yet to come.\n\nkatabasis\nwithout ever having left the room.\n\ni descend into the depths of this dark.\nas shadows spy from the corners\nand the walls of my heart close in.\n\nold beliefs loop through my soul like a curse,\nbut then i recall a mentor's advice,\nand i create a new mantra:\n<em>breathe. stay. you're okay.</em>\n\nand you can call me cynical\nbut i'm hypercritical\nof my place in the world—\nwill my uselessness cloud\nany chance of having a positive impact?\n\nevery exhale is a reminder\nof how the loneliness\nseeps through every part of me\nand compresses my compassion\nuntil the cold takes my corrupted soul\nand settles in my resting countenance.\n\nwhen did life's sweetness\nturn sour?\nwhen did my conscience\nshift into this shadow-stained soul?\n\ni fall deeper into the darkness\nof my layered mind.\nit's a humbling experience\nto go through life with the attitude that nothing hurts\nbecause no one can hurt me\nwhen each night i repeatedly get attacked\nby someone with my own name\norchestrated by my own brain.\n\nthe sharpest scrape\nisn't even on my skin.\nmy reflection is a ghost of itself.\nnot me.\n\ncould i ever dare to dream\nof a future\nwhere i obtain even\na sliver of success,\nreach for redemption,\nhope at happiness?\n\nas i touch down\nin this world beneath the surface\nwhere memories turn into monuments\nand fears masquerade as familiar landmarks,\ni become more conscious\nabout my rapidly-approaching timeline.\n\nmy heart slows like a clock\ntrying to optimize every last second.\n\ni'm not destroyed.\nam i destroyed?\n\n<em>breathe. stay. you're okay.</em>`
+    },
+    {
+      title: "Graph, Seeking a Spanning Tree",
+      author: "Prishaa Shrimali",
+      mood: "resilient",
+      text: `I am a tangle of possibilities,\nvertices vibrant with unfinished sentences,\nedges flickering like nerves deciding\nwhether to fire.\n\nEveryone says a graph should be connected—\nthat somewhere inside the lattice of my heart,\nthere must be a way to touch every point\nwithout circling back into confusion.\n\nI want to believe them.\n\nSo I wander through my own structure,\ntesting each edge like a memory:\ndoes this one hold,\nor does it only look sturdy\nuntil I trust someone with it?\n\nA spanning tree is supposed to be simple—\nno cycles, no loops of regret.\nJust a path that bridges everything\nwithout getting lost.\n\nBut choosing means cutting,\nand cutting means admitting\nsome connections were never meant\nto bear the load.\n\nI refine gently at first,\nthen with a trembling certainty,\nwatching the excess fall away\nuntil only the essential remains:\na sparkle of intention,\na shape that can finally stand.\n\nWhen I finish, I am happier,\nstill myself but clarified:\na graph that has learned\nhow to reach every part of its life\nwithout collapsing into circles.\n\nAnd in the aftermath of the search and self-repair,\nI feel it:\nthe faint, steady heartbeat\nof a structure\nthat can survive.`
+    },
+    {
+      title: "grounded by air",
+      author: "Prishaa Shrimali",
+      mood: "grounding",
+      text: `I flee the facility, jacket tossed aside,\nuntil the chill reaches every part of me\nand claims my frozen heart as its own.\n\ndare I engage in a tug-of-war for my soul\nor scream\n<span style="display:inline-block;width:100%;text-align:right;font-style:italic">let it go!</span>\n\nthe wind answers my inner desires.\n\nthe sharp, clean slice of reality\nsteadies the tremor in my breath,\nwhispering\n<span style="display:inline-block;width:100%;text-align:right;font-style:italic">you're safe now.</span>\n\neventually, silence settles in like snowfall,\nbrief, weightless,\nenough to remind me I'm still here.\n\nI stand there, shivering,\nletting the afternoon air stitch me back into myself.\n\nthe world slows down out here,\neach exhale a small surrender,\neach inhale a rickety reclaiming.\n\nI internally appreciate the mercy of cold air.\nthe frigidity does what warmth can't:\nit reinforces my mortality.\nit reminds me I have edges,\na body, a boundary,\na place to return to\nwhen my mind tries to overpower me.\n\nI stay until the shaking slows,\nuntil my pulse stops pounding\nlike it's trying to break open my ribcage and escape.\n\nonly then do I realize\nnature hasn't taken anything—\nit's given me back\nthe part of me that stayed.`
+    },
+    {
+      title: "i've survived the mariana trench barefoot",
+      author: "Prishaa Shrimali",
+      mood: "resilient",
+      text: `I tell myself\nthis unavoidable descent\nis nothing new,\njust another night\nwhere the floor drops out\nfrom beneath my ribs.\n\nKatabasis\nwithout ever having left the room.\n\nThe demon knows the drill by now.\nIt slinks back into the shadows,\nwaiting for the click in my chest,\nthe moment when breath forgets its job\nand the world tilts sideways.\n\nThen comes\nthe instantaneous collapse\nof days I never wanted to live.\n\nMy body folds into itself,\na pressure-depth I never trained for.\nI feel it unthread itself from my spine\nand recede like the low tide,\nleaving salt behind,\na reminder that even monsters\nobey the moon.\n\nMy beating heart\nis like a ticking clock\nthat believes it has no purpose\nand is convinced\ntime won't matter.\n\nRegardless, I keep walking\nacross the trench floor,\nbarefoot,\nskin splitting against the cold,\nmapping the underworld\nby tactile measures alone.\n\nAs I go, I'm constantly negotiating\nbetween what wants to devour me\nand what refuses to die.\n\nWhen the demon tires of its own hunger,\nit melts into the margins of the dark,\nas if ashamed of how much of me\nit failed to claim.\n\nAnd I rise,\nslowly, stupidly, stubbornly,\nlungs burning with borrowed light,\nknowing survival isn't triumph\nbut proof of return.\n\nI surface with nothing but breath\nand the knowledge that I can descend again\nand still come back\nwhole enough\nto tell my story.`
+    },
+    {
+      title: "Katabasis (without leaving the room)",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `<em>I don't know what's wrong with you.</em>\n<em>You're not able to just push through it.</em>\n<em>We need to take you to the doctor and get you fixed.</em>\n<em>Useless.</em>\n\nThis looping refrain,\nthe thoughts that remain,\nmove through my veins,\nseeping into my heart\nand corrupting it\nwith their vicious intentions.\n\nThe poison in my brain\nmigrates to my marrow\nand attacks me\nfrom the inside-out.\n\nNerves turned me nocturnal,\nand panic made me manic,\nstranding me on this island of insanity\nwhile I watch the world burn down around me.\n\nKatabasis without leaving the room.\n\nAm I being lifted to the heavens\nor dragged into hell?\nWait—I was already there,\nso this must be purgatory.\nOr is this the fields of asphodel?\n\nAm I what I always dreamed of being:\na nameless, faceless ghost\nwho never amounted to anything\nand now must pay the perpetual price?\n\nI keep mistaking my own reflection\nfor a warning sign,\nconvinced that everything I touch\nis destined to break.\n\nFailure is eternal here,\ntattooed on my soul\nin bloodred ink.\n\nTo join this club of rejects,\nI had to pledge a fatal oath\nthat left me branded—\n<em>useless.</em>\n\nBut my comrades will leave me stranded\nif I question the creed\nor let them see me bleed.\n\nI descend further through thought-strata\noccupying the depths of Tartarus,\neach layer heavier than the last,\nmemory calcifying into monuments\nI never meant to build.\n\nI keep walking\nthrough corridors carved from past mistakes,\neach one whispering my name\nlike a curse I inherited.\n\nEvery step downward resounds upward,\na reminder that the mind has its own underworld,\nand I keep returning to map it again.\n\nBut the burning in my chest,\nonce anxiety, now rests.\nThe phoenix growing inside\nwill burst forth and be my guide\non how I can thrive\nand do more than just stay alive.\n\nEven if I don't have a heart,\nI have heart.`
+    },
+    {
+      title: "Limit",
+      author: "Prishaa Shrimali",
+      mood: "resilient",
+      text: `I move toward you in narrowing steps,\neach one smaller than the last,\na sequence tightening like breath\nheld too long.\n\nEveryone says this is what limits do:\napproach, approximate,\ndraw closer without ever arriving.\n\nBut no one warns you how it feels\nto live inside that operation.\n\nI have charted every path to you,\nleft-hand, right-hand,\nmonotone, trembling,\neach curve bending itself\ninto the shape of desire.\n\nStill, the distance remains,\nweaker than a whisper,\na force overpowering fate.\n\nYou are the value I converge toward,\nthe point that steadies my wandering,\nthe coordinate that gives meaning to my wondering\neven as it refuses me.\n\nI keep approaching—\nε shrinking,\nδ tightening,\nthe world compressing\ninto a promise I can almost touch.\nAlmost.\n\nSome days I wonder\nwhether the ache is the point,\nwhether a limit exists\nnot to be reached\nbut to teach a function\nhow to keep moving.\n\nSo I continue,\ncloser, closer,\ninfinitely near,\ninfinitely not.\n\nAnd in that vanishing space\nbetween what I am\nand what I will never touch,\nI find a strange kind of steadiness:\na value that waits for me\neven without contact.`
+    },
+    {
+      title: "No one likes a lawyer on Lexapro.",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `No one likes a lawyer on Lexapro.\nNo one wants a senator\nwho goes insane at night\nlike a werewolf.\n\nSo I keep my pulse uncharted,\nmy file unblemished,\nno prescriptions, no diagnoses\nthat could tank a clearance\nbefore I ever shake a donor's hand.\n\nI dodge pills like subpoenas,\nafraid of choking on addiction\nand worried it might rewrite me,\nsoftening the spike I've spent years\nsharpening into a résumé.\n\nAnd sanctioned wellness—\nI can't spare the hour,\nthe toll,\nthe luxury of narrating my life\nto someone paid to witness it.\n\nAnd there's no time—\nI'm too busy\nbuilding a profile to be proud of\nto commit to\nthe time-consuming trials\nthat'll force me to dwell on the past\nI've almost entirely pushed away.\n\nI'm too sealed-shut anyway—\ntoo cracked at containment,\ntoo practiced at hushcraft,\nto peel back the official red stamp\nand unravel in front of a stranger\ntracking the tilt of my head\nlike it's evidence.\n\nThe thought of corrective conversation\nwith commissioned company\nis repulsive.\n\nI'm not opening up to someone\nI don't know\npoised to notarize my hesitation,\nclipboard in hand.\n\nAbove all, I can't risk disclosure.\nOne wrong word and some mandated stranger\nmight flag my childhood as contraband,\nseize the only shelter I've ever known,\nleave me standing in the wreckage\nwith nowhere on the form to list "home."\n\nSo I stay unexamined,\nunmedicated,\nunrecorded—\na future empire built\non immaculate paperwork\nand a duly executed closing statement.`
+    },
+    {
+      title: "paranoia",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `there is a room\nwith no lights\nand no corners\nbecause corners imply safety\nand safety is a myth i stopped believing in\nsomewhere between\nthe first unidentifiable attack\nand the second breath i couldn't take.\n\nthe air here\nhas the saltiness of the ocean\nand the viscosity of honey—\nthick, slow,\npressing its palms against my ribs\nas if to ask\n<em>are you sure you deserve to breathe today?</em>\n\ni don't answer.\ni've learned not to.\n\nand you can call me cynical\nor simply whimsical,\nbut somewhere between waking\nand whatever comes before it,\ni drift through nights that feel too real—\nhalf-dreams that\n<span style="display:inline-block;padding-left:2em">mummify me in cling wrap,</span>\n<span style="display:inline-block;padding-left:2em">duct tape my mouth and chance at seeking support,</span>\n<span style="display:inline-block;padding-left:2em">echo in my hollow heart and follow me into daylight.</span>\n\ni keep asking if i'm losing myself\nor just trapped in a loop i can't slip out of,\nthese nightmares threading through my hours\nuntil even noon feels haunted.\n\nsome nights\na shadow walks in before i do.\nit wears\n<span style="display:inline-block;padding-left:2em">my posture,</span>\n<span style="display:inline-block;padding-left:2em">my heartbeat,</span>\n<span style="display:inline-block;padding-left:2em">my name,</span>\nlike a stain.\n\nit follows me\nwith the patience of something\nthat already knows\nhow the story ends.\n\ni run anyway—\nthrough crowds that blur into colorless blots,\nfaces melting into a\nsingle\nunblinking\neye.\n\n<em>those people were never there.</em>\n<em>none of this is real,</em>\n<em>it never was.</em>\n\ni'm aware within\nmy mindware's endless film\nthat i'm\n<span style="display:inline-block;padding-left:2em">merely cornered in my cursed skull,</span>\n<span style="display:inline-block;padding-left:2em">logically safe as nothing can hurt me here,</span>\nbut not lucid enough to\n<span style="display:inline-block;padding-left:2em">interrupt my imagination,</span>\n<span style="display:inline-block;padding-left:2em">control my corrupt cranium,</span>\n<span style="display:inline-block;padding-left:2em">put a stop to the spiraling strain,</span>\nand break out of my brain.\n\nevery step feels like a\nsecret recording of my spotlight\ntaken against my consent.\nevery breath is a reminder\nthat i'm a public figure\nyet a private person.\nevery whisper sounds like\n<em>you're slipping again.</em>\n\nand maybe i am.\n\nthe shadow monster catches me\nin the hallway between\nyesterday's courage\nand tomorrow's performance.\nits hands are cold.\nfamiliar.\nmine.\n\ni don't scream.\ni just watch\nas it pries off\na mask\nof my face.\n\nthen it peels its face apart\nand i pour out—\ntired, trembling,\na version of me\ni thought i'd buried\nunder schedules\nand smiles\nand the masquerade of pretending.\n\nunderwater now—\nbecause panic has a way\nof turning lungs into oceans—\nis my heart slowing down\nor speeding up?\n\ni reach for the surface\nand touch only mirrors.\n\none clam seems to offer refuge\nbut slams shut on my fingers\njust as my grip meets its edge.\n\nthe Mariana Trench\nis not for the faint of heart,\nthough i suppose no one\ncomes down here\nin this condition\nof their own volition.\n\nthe repetitive refrain continues,\nbut the only broken record here\nis my uselessness.\n\nevery reflection asks:\nwhy are you still fighting?\nand i answer with the smallest truth i have:\n<em>because i want to see tomorrow</em>\n<em>even if today is a storm.</em>\n\nwhen i finally break the surface,\nnight drags me back\ninto the dream still clinging to my skin,\nheavy as a body i can't lift.\n\ni wake pinned to the mattress,\nbreath snagged on the branch\nthat pierced my heart in the nightmare,\nthe room tilting as the silhouette\nleans over me,\nits outline carved from every fear\ni never dared to say aloud.\n\nwith both hands,\nit raises something sharp\nmade of memory and dread,\nbut i thrust my arms\n—shaky and out of my nervous system's control—\nand i push my palms\nagainst its forearms,\nholding back the impending silver stab\nby a mere, quivering inch—\nlocked in a stalemate.\n\nbegrudgingly, the dark creature nods\nas if to respect my resolve.\ni've passed its twisted test,\nin which i was\n<span style="display:inline-block;padding-left:2em">bound in the static of sleepless hours,</span>\n<span style="display:inline-block;padding-left:2em">sealed and silent and suffocating,</span>\n<span style="display:inline-block;padding-left:2em">maimed by the thoughts that remain.</span>\n\nthe noise in my veins grows as my heart works overtime,\nthe night shrink-wrapped me into stillness,\nand i may have forgotten how to breathe,\nbut i'm not giving up.\n\nthe shadow doesn't disappear.\nit never does.\nbut it steps back,\njust enough for me to stand.\n\nand in that small slice of space\nbetween fear and forward,\ni leave behind my paranoia.\n\ni find\n<span style="display:inline-block;padding-left:2em">something like a pulse,</span>\n<span style="display:inline-block;padding-left:2em">something like a path,</span>\n<span style="display:inline-block;padding-left:2em">something like a possibility.</span>`
+    },
+    {
+      title: "Personal Disclosure Audit",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `renting a witness,\nthe thought of hiring a stand-in confidant,\nthe transaction of paying someone to listen,\noutsourcing conversation like it's a service,\ncommissioning company because I have none,\nconscripting companionship like a necessary vice—\nevery aspect of it curdles into an involuntary revulsion.\n\nthis sanctioned keeper of my interior\nwill hang onto my every word,\nwaiting to notarize my despondency,\nlog my loneliness in leaded luster,\nand immortalize my internalizations in ink.\n\nthis mind-meddler,\npoised to certify my solitude,\nprepared to file my hesitation as a symptom,\npressed to record my isolation-induced ineptitude,\npetitioning for a proxy to bear witness to my secrets,\nwould push me beyond\nmy mute-discipline.\n\nthis archivist of my unspoken hours\nhovers to document the vacancy\nof my institution-worthy instability,\nleaving me stamped, sorted,\nand shelved under permanent observation.\n\nclassified at last:\na case file mistaken for a person.`
+    },
+    {
+      title: "Prime",
+      author: "Prishaa Shrimali",
+      mood: "resilient",
+      text: `I was born with no factors but myself,\na solitary integer walking the number line\nlike a spine that refuses to bend.\n\nThey keep trying to split me:\nteachers with their chalk-dust certainty,\nstudents with calculators humming like ventilators,\nmathematicians who love a clean division.\n\nBut I do not break.\nI'm in my prime.\n\nI am the remainder that never vanishes,\nthe perfect proof that not everything\ncan be evenly shared.\n\nComposite numbers group and cluster,\ntrading GCFs like family stories.\nI stand apart, indivisible,\na boundary you cannot cross\nwithout leaving something behind.\n\nCall it arrogance or structure—\nI call it definition.\n\nTo be prime is to hold your shape\nagainst every attempted partition,\nto insist on being whole\nin a world that keeps trying\nto take you apart.`
+    },
+    {
+      title: "slump",
+      author: "Prishaa Shrimali",
+      mood: "resilient",
+      text: `i keep losing the race\nbefore i even learn the rules—\neveryone else sprinting,\nme stuck in this sand-clock world\nwhere every grain lands louder\nthan my footsteps.\n\nsome days\nthe road remembers us walking side by side.\nmost days\nit only remembers you.\n\nyou, a blur of forward.\nme, a smudge of nearly there.\n\ni try to speed up\nbut my body moves like a buffering screen,\na loading bar that never reaches the right edge.\n\nthe air is cold here,\nfraught,\nlike i'm breathing through a cracked straw.\n\ni used to think i was built for winning,\nmind sharp, speech commanding,\na certainty to my stride,\nborn with aura worthy of accolades.\n\nonce calibrated for perfection,\nnow i'm a photograph\nleft too long in the sun,\ncolors drained,\nedges fading,\ndisintegrating into dust.\n\ni tell myself\nyou can do it\nuntil the words lose their bones\nand collapse in my mouth.\n\ni look in the mirror\nand practice pride\nlike it's a foreign language\ni should've learned years ago.\n\neveryone watching\nfeels like a spotlight aimed at my pulse.\n\ni want to move forward\nbut the world keeps overtaking me,\ntheir shadows crossing my path\nbefore i even lift my foot.\n\ni shake.\ni blink.\ni try again.\n\nthe future stretches out—\na horizon i can point to\nbut never touch.\n\nall the things i wanted\nfloat just beyond fingertip distance,\nlike stars pretending to shine.\n\nand still\ni walk.\n\nslow, maybe,\nbut not stopped.\n\nif i'm forgotten here,\nlet it be by the world,\nnot by myself.\n\nso i gather the broken pieces\nof every foolish dream\nand hold them anyway,\nbecause even shards\ncatch the light.`
+    },
+    {
+      title: "smiling despondency (a poem in broken rooms)",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `at school,\ni don the practiced version of myself,\nthe one who laughs on cue,\nwho knows how to nod at the right moments,\nwho understands the art of seeming fine.\n\nyet below that performance,\nsomething hollows.\n\ni move through hallways\nlike a borrowed silhouette,\na machine that remembers how to walk\nbut not why.\n\nthe mirror cracks first.\nnot from impact,\nbut from the strain of holding\ntoo many versions of me\nin one trembling pane.\n\ni watch those versions fade in and out,\nthe one my friends expect,\nthe one my family recognizes,\nthe one i pretend to inhabit,\nand the one that never quite arrives.\n\nnone of them feel like a person.\nnone of them feel like me.\n\ni train my tight-lipped smile\nin the fractured glass,\neach shard catching a different angle\nof the same exhausted expression.\n\nthe room destabilizes\nunder that secret, aching effort\nto seem intact.\n\nat home,\ni switch masks again.\na positive one,\na productive one,\na countenance that conveys,\n<em>i've got it under control,</em>\na smile that says\n<em>i'm okay,</em>\neven when i don't know\nwhat "i" is supposed to mean.\n\ndoors here don't close:\nthey groan.\nhinges loosen under the weight\nof conversations i never finished,\ntexts i haven't yet returned,\npromises i meant to keep,\nand the disintegration of days\ni never wanted to live.\n\nin the corner,\na chair leans like it's listening.\nthe wallpaper peels\nin long, curling confessions.\neven the dust motes\nmove with a kind of reverence,\nas if mourning the light\nthey drift through.\n\nsometimes i wonder\nif the room understands me\nbetter than i understand myself,\nif these walls know\nwhat a person is\nin ways i never learned.\n\ni walk barefoot\nacross the floorboards' memory,\neach creak a small admission,\neach step a negotiation\nbetween staying and slipping\ninto the bottomless beneath.\n\ndespite these silent struggles,\ni smile.\nnot out of joy,\nbut out of muscle memory,\na defense mechanism\nborn from wanting\nto reassure the world\nthat i am not unraveling\nin these uninhabitable rooms.\n\nbut the unraveling\nis a slow revealing\nof the parts of me\nthat could never be debugged,\nnever match the outline\nof what a person should be.\n\nthe truth is tragic.\ni am learning\nhow to sit with the brokenness,\nhow to let the walls wander,\nhow to let the mirror breathe.\n\nand in that gradual surrender,\nthe smile shifts.\nless performance,\nmore permission.\n\na small, steady curve\nthat says:\ni am here,\neven in the ruins,\neven in the rooms\nthat cave in when i exhale.`
+    },
+    {
+      title: "Stitchwork of Staying",
+      author: "Prishaa Shrimali",
+      mood: "grounding",
+      text: `In the chapel of my own unspooling mind,\nI clutch the cotton like a relic.\nThe sleeve's stitching keeps me sane:\na rosary resembling my bracelets\nbut made of thread and breath,\nlooped between trembling fingers\nas the room tilts toward somewhere else.\n\nI mentally recite the liturgy of staying:\nnot hope,\nnot peace,\nnot joy,\nnot love,\nbut this fabric, warm from my skin,\na minor rite of returning,\nthis small mercy I can touch.\n\nNo angels descend.\nNo revelation splits the ceiling.\nNo organ plays to call my mind back into my body.\n\nIt may be pink,\nbut the joy derived\nfrom the sleeves' stitchwork\nis gentler than anything my mind can offer,\nis steadier than the thoughts trying to unseat me,\nis the closest thing to certainty I can hold,\nis the only thing that doesn't slip away,\nis a quiet tether back to myself.\n\nOnly the soft, stubborn presence\nof this safety-inducing shirt that refuses to let me drift\ninto the far corners of myself.\n\nIt's not holy,\nbut it's tangible,\nand for now\nthat's enough,\nthis sacrament of softness and safety\nsupporting my survival,\nkeeping me here,\nbreathing,\npresent.`
+    },
+    {
+      title: "The Ghost of Christmas Elsewhere",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `i keep losing my place\nin this room full of warm voices,\nwhere Christmas cheer is all around\nyet all i want is to never be found.\n\none moment i'm laughing\nwith an ornament in my hand,\nthe next i'm watching myself\nfrom the far corner,\na third-person spectator\nin my own skin.\n\nthe white lights shine bright.\nthe speaker blasts "All I Want For Christmas Is You."\nsomeone's telling a story.\nmy mouth moves in time\nbut the words arrive late,\nlike i'm buffering\nbetween two versions of me—\nthe one who's here\nand the one who's judging\njust across the scene.\n\ni blink\nand the world snaps back,\ntoo bright, too close,\nas if the air forgot\nhow to hold me.\n\ni blink again\nand i'm across the room,\nstudying\nthe slant of my shoulders,\nthe sound of my practiced laugh,\nthe awkwardness in my forced hugs,\nthe way i nod at the right moments,\nthe Ghost of Christmas Elsewhere\ntaking notes\non how to be human.\n\neventually the jolly times wear me down\nto the point where my synthetic mask\nirritates the skin on my face.\n\nfeeling more manufactured\nthan the toys Santa delivers—\nexcept i don't bring joy\nto anyone on Christmas Day—\ni mumble something about a deadline,\na task,\nanything that sounds believable enough\nto let me go.\n\ni escape\nup the back staircase,\ninconspicuous.\n\ni yearn to step out\ninto the cooler air\nso the day might relieve me\nof this inevitable tension,\nbut i'm confined within this building\nwhere my smile is stitched on\nand my energy is my facade\neverywhere apart from\nthe first-floor bathroom.\n\ni find an empty classroom,\nabandoned by students in favor of\npartaking in the seasonal festivities\nand Christmas karaoke\noccurring in the lobby—\nwhere i should be, too.\n\nnow somewhere quieter,\ni open my laptop\nand settle into the company\nthat insists on existing\nin my surroundings\nwhen isolated:\nall the versions of me\ncompiled like translucent pages,\npast leaning into present,\npresent reaching towards whatever comes next.\n\nit's not peace,\nbut it's mine,\nand for now\nthat's enough to keep me here,\nalone and alive.`
+    },
+    {
+      title: "Time, My New Old Friend",
+      author: "Prishaa Shrimali",
+      mood: "resilient",
+      text: `oh how strange it felt\nto not be alone in the room!\ntime slowing beside me,\nslowing like a clock unsure of why it ticks,\nconvinced time won't matter.\n\nbut time is all we have.\nit's the constraint under which\nwe try and fit everything else in.\n\nstill, the old thing stirs.\nit slinks back into the shadows,\nunthreads itself from my spine and recedes,\nmelts into the margins of the dark,\nas if it knows it's being watched.\n\nbut i push back—\nmy mother's progeny\nhas learned from the past\nand is now stronger\nthan those who've passed.\n\ni'll break the pattern\nthat broke them,\neven if the breaking begins in me.`
+    },
+    {
+      title: "What happens when a Firebender loses its powers?",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `some nights\ni wake up already drifting,\nhalfway between a planet i never learned to stand on\nand a silence that keeps calling me\nby names i don't remember choosing.\n\ni keep checking the mirror\nfor signs of life—\n<span style="display:inline-block;padding-left:2em">a spark,</span>\n<span style="display:inline-block;padding-left:2em">a pulse,</span>\n<span style="display:inline-block;padding-left:2em">a reason—</span>\nbut the glass only gives me\na face i've been optimizing\ninstead of living.\n\nthe sun rises\nlike it's trying to prove something,\nbut i blink\nand miss the whole argument.\n\nlight feels scarce these days,\nlike it's been stretched too far\nover the frame of a body\nthat won't warm.\n\ni tell myself\nand my concerned stakeholders\ni'm just tired,\nbut the truth is\ni've been orbiting the same thought\nfor years:\nthat maybe i'm built\nfor distances\ni can't cross.\n\ni want to want things—\nfriendship,\nlaughter,\na future that doesn't feel so bleak—\nbut everything i reach for\nfloats a little farther away,\nas if the universe is gently\ncorrecting my posture.\n\nyet, still\ni write,\ndesperate words spilling out\nlike emergency flares\nthat refuse to catch flame.\n\ni keep hoping one sentence\nwill strike the right surface\nand burn.\n\npeople say\nthere's destiny,\nmeaning,\na path.\nbut all i hear is the not-so-soft whirring\nof my own mind\nchewing through its wires,\ntrying to power a skyship\nwith no fuel.\n\ni lie down,\nand the weight of being seen\npresses harder\nthan the weight of being lost.\n\ni'm not a child anymore,\nbut i still flinch\nat the thought\nof disappearing\nbefore anyone notices\ni was here—\nor worse, before\ni could find meaning.\n\noutside,\neveryone looks so bright,\nlike they were born knowing\nhow to glow.\n\ni keep waiting\nfor the heat to return\nso the ember in my heart\ncan remember its job.\n\nbut tonight,\nthere is only this:\nthe quiet cabin of my mind,\ntwo eye-shaped windows full of stars,\nand a burden of a body\nthat feels like a question\nno one taught me\nhow to answer.\n\nno fire,\nnot yet—\njust the faintest outline\nof where a flame\ncould be.`
+    },
+    {
+      title: "broken set",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `Let P1 and P2 be two elements\nthat should have remained disjoint subsets,\nnever merged, never forced into a union U\nthat collapses under the weight of its own proof.\n\nLet C be the only child,\nan element introduced despite\nthe Venn diagram already being torn at the seams,\na point plotted on a graph whose axes\nwere never meant to intersect.\n\nDefine the family F = {P1, P2, C},\nthough every operation on F\nreturns contradictions:\nintersection gives way to argument,\ndifference yields silence,\nclosure fails,\nand associativity never holds.\n\nThey say F stayed intact for C,\nas if intention could override axioms,\nas if a broken set could be mended\nby declaring it whole\nand projecting that falsehood to outsiders.\n\nLater, they stayed for paperwork,\ndespite the elements of F\nreaching their limit long ago.\n\nImmigration forms prefer neat relations,\nprefer unions that behave like simplified equations,\nprefer families that satisfy conditions\nthis one never met.\n\nNow C approaches 18,\nthe constraint of the function,\nthe boundary of dependence,\nthe threshold where the system might finally resolve.\n\nAnd the green card still crawls through processing,\na sequence converging painfully slowly,\nbut approaching.\n\nAlmost there,\nalmost defined,\nalmost free to step outside the set\nand construct a new one—`
+    },
+    {
+      title: "Category 5 Panic Attack",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `<em>—thump-thump thump-thump thump-thump</em>\nthe room tilts the air folds in on itself\nmy chest is a drum too loud too fast\ncontaining a revolting heart that'll break free\nand beat me from the outside in until\nthere's pain everywhere in my head and heart\nmy heart-drum is a war signal echoing through empty overworked valves\nI slip out of myself\nthe body becomes a stranger\nsaltwater surrounds my skin\nno no no not from my eyes not from my face not from my soul\nsticky sweaty skin is a claustrophobic costume\nI want to peel off\nI'm alone now so the mask is off\nI'm unraveling taking layers off\nthe world bends unreal\nwalls shimmer like painted scenery\nnothing is near to me nothing is dear to me\nthe tornado twists my thoughts into a tumult\nthe storm sends my senses and sensibility spinning\nthird person view has seen better days\npolluted past settles over my mind like a heavy haze\nup to my nose in saltwater but my heart is ablaze\nI watch from the corner of the room\nI watch myself become a prey cornered by invisible predators\nas if I am both actor and audience\nas if I am split into shadow and shell\nI see myself moving but I do not belong\nI see myself breathing but I am not inside\nthoughts scatter like birds startled midflight\ncloud like the sky before a Category 5 storm\nI try to catch one but it slips\nslips again slips again\nthe floor is not steady the walls lean closer\nthe ceiling drips concrete into my lungs\nmy breath is a rope fraying\nI pull I pull I pull\nbut the rope burns my hands\nbarely stringing syllables soundly\nbarely conscious but cautious of my collapsing countenance\nvoices blur into static\nlight flickers too sharp too bright\nshield my eyes though when I close them\nI see all the more lucidly\nbut I don't forsee the force of the wind\nfilled with the intersectionality of this storm\nit snakes around my esophagus and squeezes until\neyes demented by sleepless nights pop out\nnow I'm levitating\nbang my head against the wall until\nI see lightning I hear thunder\nnow I'm pinned against the wall\nsuspended feet wriggle until they fall limp\narms wrestle for control for life\nworn out they drop\nI crumple in a corner\nuseless\nwrithing on the floor\nscreaming no more\nbut a falling tree makes no sound\nif nobody is around to hear it\nmy battered body bruises from my brain's bullying\nthe tornado tears apart the tough tree\npeople nearby but nobody can see me\nsomebody issue a Hurricane Warning\nthe downpour begins\nevery sound is a siren\nevery shadow a sign\nevery nightmare foreshadowing\nthe threat of thoughts taking torture\nto the next level I'm\nderanged destroyed disassociated\nI cannot tell if it will stop or split me open\nI cannot tell if this is the end or just another beginning\nI cannot tell if I am breathing or drowning\nI fear when the next wave will break\nI fear I fear I fear\npanic is a storm that never clears\nlightning in my chest strikes without warning or sky\nthe rain rids me of reason and righteousness\nrinses the surface of my soul\nthen traps me in with my transgressions\nI beg somebody sedate my brain\nplease please please\nsedate my brain and erase the pain\nrestrain the corrupted soul within\nso I can finally free my fraying lungs and\nbreathe in breathe in breathe in\neach breath a fragile bridge over dark water\nalways trembling at the edge\nalways gripping the guardrails\nof this dreadful existence people call life\nwhere the pendulum only oscillates from fury to despondency\nleaving room in the middle for utter apathy\nthe pendulum swings\nI punch the mirror\nshards mix with salt in my open wounds\nto create a pain that's almost painless\nexcept only I know of its existence\nsince somebody's understanding only leads to my resistance\nI bite the helping hand until\nit learns the only way to get to me is to fight me\nI hit instead of hug until\nevery embrace is a thunderclap\nI push somebody away until\ntheir silence strangles me like smoke\nmaking me a machine and a monster\nI am suffocated yet satisfied by the emptiness I created\neternal solitude provides pleasant punishment\ndon't talk to me don't touch me don't look at me\nI want to run but my legs anchor me in the epicenter\nI want to scream but my throat traps thunder within\nI want to stop but the heart-drum\nkeeps hammering keeps hammering keeps hammering\nthe ceiling presses down the ground rises up\nI am caught between them\ncaught between myself\ncaught between the heart-drum\nall I hear is\n<em>thump-thump thump-thump thump-thump—</em>`
+    },
+    {
+      title: "Cutting around the edges",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `I manage the perimeter of what I share,\nstaying precise so I don't place\nemotional labor on others,\nkeeping my language contained\nso people understand the situation\nwithout feeling responsible for it.\n\nSo,\nI speak in clipped contours,\nenough to be honest but not enough to alarm.\nI edit myself in real time, keeping the edges clean\nso no one feels compelled to intervene.\nI limit my word choice and topics\nto protect this freeze-frame I live in.\n\nElsewhere,\nI choose caution over catharsis,\na learned habit that keeps the temperature low;\nI fold the sharper feelings inward,\nconceal enough so I don't have to feel them all at once,\na controlled silence that protects everyone,\nincluding me.`
+    },
+    {
+      title: "Recurrence Relation",
+      author: "Prishaa Shrimali",
+      mood: "resilient",
+      text: `My family communicates via recurrence:\neach hurt an = f(an-1),\ngenerational,\na function passed from parent\nto successor term,\nan inherited sequence\nthat no one remembers writing\nbut everyone keeps solving.\n\nI try to break the sequence,\nrewrite the rule,\nbut the past will keep calling itself\nuntil I learn\nto define a new base case.`
+    },
+    {
+      title: "This laughter isn't mine",
+      author: "Prishaa Shrimali",
+      mood: "dark",
+      text: `I shuffle through the nights I cannot name.\nThe paper cuts remind me I still feel,\nbut the victories remind me I still deal.\nA hand of chance is drawn, but not by me;\nI only play the silence in between.\n\nThe Joker waits, not laughing but awake.\nHe hides inside the choices I don't make.\nI feel his grin when I suffer in silence,\nand hear his breath when I pretend to win.\nHe hides under the covers\nof my subconscious,\nresurfacing for my nightly torment—\n\nHe drags me through the labyrinth of my dreams,\nhe paints the ceilings black with choking smoke,\nhe twists my breath into a broken ballad,\nhe bends the walls until they start to bleed,\nhe deals me hands of faces I once loved,\nand makes me watch them vanish into smoke\nwhile mirrors reflect my own ghostly face.\n\nHis taunts claw the silence of my sleep,\netching scars of exhaustion on my face\nas a chorus echoes from my heart's hollow valves\nand a carnival of shadows dance in my chest,\neach one under his Imperius Curse.\n\nTemptation comes in the form of a dare—\na dare to end it all.\nBut he whispers it kindly,\nhis promise of <em>quietus aeternus</em>.\n\nHe tilts his wrist and, in the ray of moonlight\nstreaming through the top of my window,\nI catch a glimpse of his weapon.\nI see the card, its edge as sharp as steel.\n\nI will not play; I cast the hand aside.\nThere's a dark pressure in his smile—\nI struggle to stand.\nThe darkness calls, but still I choose to stay.\n\nI used to be aggressive, confident, and bold,\nmy voice a blade, my will a sharpened sword.\nBut now this game has instilled doubt;\nI second-guess the reach of every move,\nafraid of overshooting into loss.\n\nMy bluff itself becomes a tell,\nbetraying the hand I hold,\na trembling mask that tells the truth too loud\nto those close enough to read it.\n\nThe Joker tells me I am destined for a life\nwhere I'm my own supporting character,\nthat solitude will crown me evermore.\nHis convictions carve the night into my bones,\nand I give in to the darkness,\nletting the bleak prophecy of endless loneliness\nflip its pages in my brain.\n\nWho's got the Joker? Maybe it is I.\nPerhaps the mask is stitched into my skin.\nPerhaps the trick is knowing when to fold.\nThe game goes on, though I can't see the rules.\nThe Joker laughs, and I know I am not alone.`
+    }
+  ];
+
+  let displayedPoems = [...darkPoems];
+
+  function renderPoemText(text) {
+    // Split on double newlines to get stanzas, then join lines within each stanza with <br>
+    return text.split(/\n\n+/).map(stanza => {
+      const lines = stanza.split('\n').map(line => line || '&nbsp;').join('<br>');
+      return `<p class="poem-stanza">${lines}</p>`;
+    }).join('');
+  }
+
+  function renderDarkPoems() {
+    const list = document.getElementById('darkPoemList');
+    const empty = document.getElementById('darkPoemsEmpty');
+    if (darkPoems.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+
+    const filtered = poemFilterMode === 'all'
+      ? displayedPoems
+      : displayedPoems.filter(p => p.mood === poemFilterMode);
+
+    const moodLabel = { dark: 'heavy', resilient: 'resilient', grounding: 'grounding' };
+    const moodClass = { dark: 'poem-mood-dark', resilient: 'poem-mood-resilient', grounding: 'poem-mood-grounding' };
+
+    empty.style.display = filtered.length === 0 ? 'block' : 'none';
+
+    list.innerHTML = `
+      <div class="poem-controls">
+        <button class="poem-sort-btn ${poemSortMode === 'alpha' ? 'active' : ''}" onclick="sortPoems('alpha')">A–Z</button>
+        <button class="poem-sort-btn ${poemSortMode === 'mood' ? 'active' : ''}" onclick="sortPoems('mood')">By Mood</button>
+        <select class="poem-filter-select" onchange="filterPoems(this.value)">
+          <option value="all" ${poemFilterMode === 'all' ? 'selected' : ''}>All poems</option>
+          <option value="dark" ${poemFilterMode === 'dark' ? 'selected' : ''}>Heavy</option>
+          <option value="resilient" ${poemFilterMode === 'resilient' ? 'selected' : ''}>Resilient</option>
+          <option value="grounding" ${poemFilterMode === 'grounding' ? 'selected' : ''}>Grounding</option>
+        </select>
+        <button class="poem-random-btn" onclick="openRandomPoem()">✦ Random</button>
+      </div>
+      ${filtered.map((p, i) => `
+        <div class="poem-item" id="dpoem-${i}">
+          <div class="poem-header" onclick="toggleDarkPoem(${i})">
+            <div class="poem-header-left">
+              <div class="poem-title">${p.title}</div>
+              <div class="poem-author">${p.author}</div>
+              <span class="poem-mood-tag ${moodClass[p.mood]}">${moodLabel[p.mood]}</span>
+            </div>
+            <span class="poem-chevron">▼</span>
+          </div>
+          <div class="poem-body">
+            <div class="poem-text">${renderPoemText(p.text)}</div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function filterPoems(mode) {
+    poemFilterMode = mode;
+    renderDarkPoems();
+  }
+
+  function sortPoems(mode) {
+    poemSortMode = mode;
+    if (mode === 'alpha') {
+      displayedPoems = [...darkPoems].sort((a, b) => a.title.localeCompare(b.title));
+    } else {
+      const moodOrder = { dark: 0, resilient: 1, grounding: 2 };
+      displayedPoems = [...darkPoems].sort((a, b) => moodOrder[a.mood] - moodOrder[b.mood] || a.title.localeCompare(b.title));
+    }
+    renderDarkPoems();
+  }
+
+  function toggleDarkPoem(i) {
+    const item = document.getElementById(`dpoem-${i}`);
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.poem-item').forEach(el => el.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  }
+
+  function openRandomPoem() {
+    const pool = poemFilterMode === 'all'
+      ? displayedPoems
+      : displayedPoems.filter(p => p.mood === poemFilterMode);
+    if (pool.length === 0) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    const i = displayedPoems.indexOf(pick);
+    document.querySelectorAll('.poem-item').forEach(el => el.classList.remove('open'));
+    const item = document.getElementById(`dpoem-${i}`);
+    if (item) { item.classList.add('open'); item.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+
+  // ---- Letters to Myself ----
+  let editingLetterId = null;
+
+  function switchLettersTab(tab) {
+    document.getElementById('letters-compose').style.display = tab === 'compose' ? 'block' : 'none';
+    document.getElementById('letters-mailbox').style.display = tab === 'mailbox' ? 'block' : 'none';
+    document.getElementById('ltab-compose').classList.toggle('active', tab === 'compose');
+    document.getElementById('ltab-mailbox').classList.toggle('active', tab === 'mailbox');
+    if (tab === 'mailbox') renderDeliveredLetters();
+    if (tab === 'compose') renderScheduledLetters();
+  }
+
+  function checkLetterDelivery() {
+    const now = new Date();
+    let changed = false;
+    store.letters.forEach(l => {
+      if (l.status === 'scheduled') {
+        const due = new Date(l.scheduledDate + 'T' + l.scheduledTime);
+        if (now >= due) { l.status = 'delivered'; l.deliveredAt = now.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); l.unread = true; changed = true; }
+      }
+    });
+    if (changed) saveStore();
+    updateLettersBadge();
+  }
+
+  function updateLettersBadge() {
+    const count = store.letters.filter(l => l.status === 'delivered' && l.unread).length;
+    const badge = document.getElementById('lettersBadge');
+    const badgeInline = document.getElementById('mailboxBadgeInline');
+    if (badge) { badge.style.display = count > 0 ? 'inline' : 'none'; badge.textContent = count; }
+    if (badgeInline) { badgeInline.style.display = count > 0 ? 'inline' : 'none'; badgeInline.textContent = count; }
+  }
+
+  function initLettersScreen() {
+    renderScheduledLetters();
+    renderDeliveredLetters();
+    updateLettersBadge();
+    // auto-switch to mailbox if new delivered letters
+    const hasNew = store.letters.some(l => l.status === 'delivered' && l.unread);
+    if (hasNew) switchLettersTab('mailbox');
+    else switchLettersTab('compose');
+  }
+
+  function formatLetter(cmd) {
+    document.execCommand(cmd, false, null);
+    document.getElementById('letterBody').focus();
+    updateLetterFmtBtns();
+  }
+
+  function updateLetterFmtBtns() {
+    document.getElementById('lfmtBold').classList.toggle('active', document.queryCommandState('bold'));
+    document.getElementById('lfmtItalic').classList.toggle('active', document.queryCommandState('italic'));
+    document.getElementById('lfmtUnderline').classList.toggle('active', document.queryCommandState('underline'));
+  }
+
+  function clearLetter() {
+    document.getElementById('letterTitle').value = '';
+    document.getElementById('letterBody').innerHTML = '';
+    document.getElementById('letterDate').value = '';
+    document.getElementById('letterTime').value = '09:00';
+    document.getElementById('letterSaveBtn').textContent = 'Schedule letter';
+    editingLetterId = null;
+  }
+
+  function saveLetter() {
+    const title = document.getElementById('letterTitle').value.trim() || 'Letter to myself';
+    const bodyEl = document.getElementById('letterBody');
+    const bodyHTML = bodyEl.innerHTML.trim();
+    const bodyText = bodyEl.textContent.trim();
+    const date = document.getElementById('letterDate').value;
+    const time = document.getElementById('letterTime').value || '09:00';
+    if (!bodyText) { showToast('Write something first'); return; }
+    if (!date) { showToast('Pick a delivery date'); return; }
+
+    if (editingLetterId !== null) {
+      const letter = store.letters.find(l => l.id === editingLetterId);
+      if (letter) { letter.title = title; letter.bodyHTML = bodyHTML; letter.bodyText = bodyText; letter.scheduledDate = date; letter.scheduledTime = time; }
+      editingLetterId = null;
+      document.getElementById('letterSaveBtn').textContent = 'Schedule letter';
+      showToast('Letter updated ✓');
+    } else {
+      store.letters.unshift({ id: Date.now(), title, bodyHTML, bodyText, scheduledDate: date, scheduledTime: time, status: 'scheduled', unread: false, deliveredAt: null });
+      showToast('Letter scheduled ✓');
+    }
+    saveStore();
+    clearLetter();
+    checkLetterDelivery();
+    renderScheduledLetters();
+    updateLettersBadge();
+  }
+
+  function renderScheduledLetters() {
+    const container = document.getElementById('scheduledLettersList');
+    const scheduled = store.letters.filter(l => l.status === 'scheduled');
+    if (scheduled.length === 0) { container.innerHTML = ''; return; }
+    container.innerHTML = `
+      <div style="font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);margin:20px 0 10px;">Scheduled (${scheduled.length})</div>
+      ${scheduled.map(l => {
+        const due = new Date(l.scheduledDate + 'T' + l.scheduledTime);
+        const dueFmt = due.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + due.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        return `
+        <div class="scheduled-letter-item">
+          <div class="scheduled-letter-header">
+            <span class="scheduled-letter-icon">📩</span>
+            <div style="flex:1">
+              <div class="scheduled-letter-title">${l.title}</div>
+              <div class="scheduled-letter-date">Delivers ${dueFmt}</div>
+            </div>
+            <div class="scheduled-letter-actions">
+              <button class="letter-action-btn" onclick="editLetter(${l.id})">Edit</button>
+              <button class="letter-action-btn delete" onclick="deleteLetter(${l.id})">×</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  }
+
+  function renderDeliveredLetters() {
+    const container = document.getElementById('deliveredLettersList');
+    const empty = document.getElementById('mailboxEmpty');
+    const delivered = store.letters.filter(l => l.status === 'delivered');
+    if (delivered.length === 0) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    container.innerHTML = delivered.map((l, idx) => `
+      <div class="delivered-letter-item ${l.unread ? 'unread' : ''}" id="dletter-${l.id}">
+        <div class="delivered-letter-header" onclick="openDeliveredLetter(${l.id})">
+          ${l.unread ? '<div class="delivered-unread-dot"></div>' : ''}
+          <span class="delivered-letter-icon">${l.unread ? '💌' : '📨'}</span>
+          <div style="flex:1">
+            <div class="delivered-letter-title">${l.title}</div>
+            <div class="delivered-letter-meta">Delivered ${l.deliveredAt}</div>
+          </div>
+          <span class="poem-chevron">▼</span>
+        </div>
+        <div class="delivered-letter-body-wrap">
+          <div class="delivered-letter-body">${l.bodyHTML || l.bodyText}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openDeliveredLetter(id) {
+    const letter = store.letters.find(l => l.id === id);
+    if (letter) { letter.unread = false; saveStore(); updateLettersBadge(); }
+    const el = document.getElementById(`dletter-${id}`);
+    if (!el) return;
+    const wasOpen = el.classList.contains('open');
+    document.querySelectorAll('.delivered-letter-item').forEach(e => e.classList.remove('open'));
+    if (!wasOpen) el.classList.add('open');
+    renderDeliveredLetters();
+    const newEl = document.getElementById(`dletter-${id}`);
+    if (newEl && !wasOpen) newEl.classList.add('open');
+  }
+
+  function editLetter(id) {
+    const letter = store.letters.find(l => l.id === id);
+    if (!letter) return;
+    document.getElementById('letterTitle').value = letter.title;
+    document.getElementById('letterBody').innerHTML = letter.bodyHTML || letter.bodyText;
+    document.getElementById('letterDate').value = letter.scheduledDate;
+    document.getElementById('letterTime').value = letter.scheduledTime;
+    document.getElementById('letterSaveBtn').textContent = 'Save changes';
+    editingLetterId = id;
+    switchLettersTab('compose');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function deleteLetter(id) {
+    store.letters = store.letters.filter(l => l.id !== id);
+    saveStore();
+    renderScheduledLetters();
+    updateLettersBadge();
+    showToast('Letter removed');
+  }
+
+  // Check letter delivery every minute while app is open
+  setInterval(checkLetterDelivery, 60000);
+  sortPoems('alpha');
+  checkLetterDelivery();
+  document.getElementById('moodDateLabel') && initMoodScreen();
+</script>
+</body>
+</html>
